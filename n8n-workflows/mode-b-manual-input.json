@@ -1,0 +1,522 @@
+{
+  "name": "Job Application Automation – Mode B (Manual Input)",
+  "nodes": [
+    {
+      "id": "node-mb-01",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 300],
+      "parameters": {}
+    },
+    {
+      "id": "node-mb-02",
+      "name": "Get Resume Template",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "parameters": {
+        "operation": "get",
+        "documentURL": "YOUR_RESUME_TEMPLATE_DOC_ID"
+      },
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "1",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "id": "node-mb-03",
+      "name": "Get Cover Letter Template",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [440, 300],
+      "parameters": {
+        "operation": "get",
+        "documentURL": "YOUR_COVER_LETTER_TEMPLATE_DOC_ID"
+      },
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "1",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "id": "node-mb-04",
+      "name": "Loom Demo Library",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [660, 300],
+      "parameters": {
+        "mode": "manual",
+        "fields": {
+          "values": [
+            {
+              "name": "loom_demos",
+              "type": "string",
+              "stringValue": "{\"demos\":[{\"name\":\"High Quality Icebreaker Generator\",\"description\":\"Generates personalized email openers that sound human by referencing specific, casual, and relevant details\",\"url\":\"https://www.loom.com/share/YOUR_VIDEO_ID_1\",\"relevant_for\":[\"SDR\",\"BDR\",\"sales\",\"outreach\",\"cold email\",\"lead generation\"]},{\"name\":\"High Intent Lead Scraper\",\"description\":\"Finds companies hiring for specific roles, enriches contacts, outputs outreach-ready lists. 8 hours of work in 30 minutes\",\"url\":\"https://www.loom.com/share/YOUR_VIDEO_ID_2\",\"relevant_for\":[\"SDR\",\"BDR\",\"lead generation\",\"prospecting\",\"sales ops\"]},{\"name\":\"AI SDR (Speed-to-Lead System)\",\"description\":\"Responds to positive replies within seconds and books calls automatically\",\"url\":\"https://www.loom.com/share/YOUR_VIDEO_ID_3\",\"relevant_for\":[\"SDR\",\"BDR\",\"sales\",\"automation\",\"inbound\"]}]}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-mb-05",
+      "name": "Get Job Listings",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [880, 300],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "node-mb-06",
+      "name": "Limit",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [1100, 300],
+      "parameters": {
+        "maxItems": 1
+      }
+    },
+    {
+      "id": "node-mb-07",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1320, 300],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "node-mb-08",
+      "name": "Filter Jobs",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [1540, 300],
+      "parameters": {
+        "resource": "chat",
+        "operation": "message",
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a job filtering assistant. Respond only with valid JSON."
+            },
+            {
+              "role": "user",
+              "content": "=Determine if this job is a good fit based on my skills and experience.\n\nMY BACKGROUND:\n- Experience as SDR at Tenthmark (B2B outreach, cold email, LinkedIn, Loom videos)\n- Placement Matching Specialist at Virtual Internships (30% call-to-close rate, 20% higher call booking than colleagues)\n- Built AI automation systems: icebreaker generators, lead scrapers, speed-to-lead systems\n- Strong with n8n, Zapier, Claude API, GPT-4 API, Apollo, Apify\n- Remote work experience across US, UK, Australian time zones\n- Looking for: Part-time or contract SDR/BDR roles, remote, flexible hours\n\nJOB DETAILS:\nCompany: {{ $json.company_name }}\nTitle: {{ $json.job_title }}\nDescription: {{ $json.job_description }}\n\nRespond ONLY with this exact JSON format:\n{\"verdict\": \"true\"} or {\"verdict\": \"false\"}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "3",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "id": "node-mb-09",
+      "name": "Job Match Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1760, 300],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-match",
+              "leftValue": "={{ $json.message.content }}",
+              "rightValue": "\"verdict\": \"true\"",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "node-mb-10",
+      "name": "Rewrite Resume",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [1980, 180],
+      "parameters": {
+        "resource": "chat",
+        "operation": "message",
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "=Customize this resume for the specific job below. Highlight relevant experience and skills. Keep the same structure but tailor language to match job requirements.\n\nJOB:\nCompany: {{ $('Get Job Listings').item.json.company_name }}\nTitle: {{ $('Get Job Listings').item.json.job_title }}\nDescription: {{ $('Get Job Listings').item.json.job_description }}\n\nRESUME TEMPLATE:\n{{ $('Get Resume Template').item.json.body.content }}\n\nInstructions:\n1. Emphasize experience relevant to this specific role\n2. Mirror keywords from the job description where authentic\n3. Keep formatting clean (use Markdown)\n4. Do not invent experience or skills I don't have\n5. Output ONLY the resume content, no backticks or code blocks"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "3",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "id": "node-mb-11",
+      "name": "Generate Cover Letter",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [2200, 180],
+      "parameters": {
+        "resource": "chat",
+        "operation": "message",
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "=Write a personalized cover letter for this job application. The letter should:\n1. Open with a specific hook about the company (not generic)\n2. Explain why I'm the right fit for this role\n3. Include 1-2 relevant automation demos from my portfolio (as Loom links)\n4. End with a clear call to action\n\nJOB:\nCompany: {{ $('Get Job Listings').item.json.company_name }}\nTitle: {{ $('Get Job Listings').item.json.job_title }}\nDescription: {{ $('Get Job Listings').item.json.job_description }}\nHiring Manager: {{ $('Get Job Listings').item.json.decision_maker_name }}\n\nMY COVER LETTER TEMPLATE:\n{{ $('Get Cover Letter Template').item.json.body.content }}\n\nMY LOOM DEMO LIBRARY (select 1-2 most relevant):\n{{ $('Loom Demo Library').item.json.loom_demos }}\n\nInstructions:\n1. Address to {{ $('Get Job Listings').item.json.decision_maker_name }} by first name\n2. Reference something specific about the company or role\n3. Select the most relevant Loom demos based on the job description\n4. Format the Loom links naturally in the letter (e.g., \"I built [an icebreaker generator](loom_url) that...\")\n5. Keep it concise (under 300 words)\n6. Sound human, not corporate\n7. Output ONLY the cover letter content in Markdown, no backticks"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "3",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "id": "node-mb-12",
+      "name": "Resume to HTML",
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [2420, 180],
+      "parameters": {
+        "mode": "markdownToHtml",
+        "markdown": "={{ $('Rewrite Resume').item.json.message.content }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-mb-13",
+      "name": "Cover Letter to HTML",
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [2640, 180],
+      "parameters": {
+        "mode": "markdownToHtml",
+        "markdown": "={{ $('Generate Cover Letter').item.json.message.content }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-mb-14",
+      "name": "Create Resume Doc",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [2860, 180],
+      "parameters": {
+        "operation": "create",
+        "title": "=Resume - {{ $('Get Job Listings').item.json.company_name }} - {{ $('Get Job Listings').item.json.job_title }}"
+      },
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "1",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "id": "node-mb-15",
+      "name": "Create Cover Letter Doc",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [3080, 180],
+      "parameters": {
+        "operation": "create",
+        "title": "=Cover Letter - {{ $('Get Job Listings').item.json.company_name }}"
+      },
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "1",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "id": "node-mb-16",
+      "name": "Update Resume Doc",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [3300, 180],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://www.googleapis.com/upload/drive/v3/files/{{ $('Create Resume Doc').item.json.documentId }}?uploadType=media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "text/html"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/html",
+        "body": "={{ $('Resume to HTML').item.json.data }}"
+      },
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "1",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "id": "node-mb-17",
+      "name": "Update Cover Letter Doc",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [3520, 180],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://www.googleapis.com/upload/drive/v3/files/{{ $('Create Cover Letter Doc').item.json.documentId }}?uploadType=media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "text/html"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/html",
+        "body": "={{ $('Cover Letter to HTML').item.json.data }}"
+      },
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "1",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "id": "node-mb-18",
+      "name": "Share Resume",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [3740, 180],
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Create Resume Doc').item.json.documentId }}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        }
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "4",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "id": "node-mb-19",
+      "name": "Share Cover Letter",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [3960, 180],
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Create Cover Letter Doc').item.json.documentId }}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        }
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "4",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "id": "node-mb-20",
+      "name": "Create Draft",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [4180, 180],
+      "parameters": {
+        "resource": "draft",
+        "operation": "create",
+        "sendTo": "={{ $('Get Job Listings').item.json.decision_maker_email }}",
+        "subject": "={{ $('Get Job Listings').item.json.job_title }} at {{ $('Get Job Listings').item.json.company_name }}",
+        "emailType": "html",
+        "message": "=<p>Hey {{ $('Get Job Listings').item.json.decision_maker_name.split(' ')[0] }},</p>\n\n<p>I saw you're hiring for {{ $('Get Job Listings').item.json.job_title }} at {{ $('Get Job Listings').item.json.company_name }}.</p>\n\n<p>I've attached my resume and cover letter. The cover letter includes demos of automation systems I've built that are directly relevant to this role.</p>\n\n<p><strong>Quick links:</strong></p>\n<ul>\n  <li><a href=\"https://docs.google.com/document/d/{{ $('Create Resume Doc').item.json.documentId }}/edit\">Resume</a></li>\n  <li><a href=\"https://docs.google.com/document/d/{{ $('Create Cover Letter Doc').item.json.documentId }}/edit\">Cover Letter (includes Loom demos)</a></li>\n</ul>\n\n<p>Happy to hop on a quick call if you'd like to learn more.</p>\n\n<p>Best,<br>Izuchukwu Okafor</p>",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "5",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{"node": "Get Resume Template", "type": "main", "index": 0}]]
+    },
+    "Get Resume Template": {
+      "main": [[{"node": "Get Cover Letter Template", "type": "main", "index": 0}]]
+    },
+    "Get Cover Letter Template": {
+      "main": [[{"node": "Loom Demo Library", "type": "main", "index": 0}]]
+    },
+    "Loom Demo Library": {
+      "main": [[{"node": "Get Job Listings", "type": "main", "index": 0}]]
+    },
+    "Get Job Listings": {
+      "main": [[{"node": "Limit", "type": "main", "index": 0}]]
+    },
+    "Limit": {
+      "main": [[{"node": "Loop Over Items", "type": "main", "index": 0}]]
+    },
+    "Loop Over Items": {
+      "main": [
+        [{"node": "Filter Jobs", "type": "main", "index": 0}],
+        []
+      ]
+    },
+    "Filter Jobs": {
+      "main": [[{"node": "Job Match Check", "type": "main", "index": 0}]]
+    },
+    "Job Match Check": {
+      "main": [
+        [{"node": "Rewrite Resume", "type": "main", "index": 0}],
+        [{"node": "Loop Over Items", "type": "main", "index": 0}]
+      ]
+    },
+    "Rewrite Resume": {
+      "main": [[{"node": "Generate Cover Letter", "type": "main", "index": 0}]]
+    },
+    "Generate Cover Letter": {
+      "main": [[{"node": "Resume to HTML", "type": "main", "index": 0}]]
+    },
+    "Resume to HTML": {
+      "main": [[{"node": "Cover Letter to HTML", "type": "main", "index": 0}]]
+    },
+    "Cover Letter to HTML": {
+      "main": [[{"node": "Create Resume Doc", "type": "main", "index": 0}]]
+    },
+    "Create Resume Doc": {
+      "main": [[{"node": "Create Cover Letter Doc", "type": "main", "index": 0}]]
+    },
+    "Create Cover Letter Doc": {
+      "main": [[{"node": "Update Resume Doc", "type": "main", "index": 0}]]
+    },
+    "Update Resume Doc": {
+      "main": [[{"node": "Update Cover Letter Doc", "type": "main", "index": 0}]]
+    },
+    "Update Cover Letter Doc": {
+      "main": [[{"node": "Share Resume", "type": "main", "index": 0}]]
+    },
+    "Share Resume": {
+      "main": [[{"node": "Share Cover Letter", "type": "main", "index": 0}]]
+    },
+    "Share Cover Letter": {
+      "main": [[{"node": "Create Draft", "type": "main", "index": 0}]]
+    },
+    "Create Draft": {
+      "main": [[{"node": "Loop Over Items", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "notes": "MODE B: Manual Input. Add job listings (with decision maker emails already enriched via Apollo) to your Google Sheet before running. Start with Limit = 1 to test one job end-to-end, then increase to process your full list."
+  }
+}

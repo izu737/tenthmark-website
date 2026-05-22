@@ -1,0 +1,178 @@
+{
+  "name": "Job Application Automation – Mode A Phase 2 (Create Gmail Drafts)",
+  "nodes": [
+    {
+      "id": "node-a2-01",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 300],
+      "parameters": {}
+    },
+    {
+      "id": "node-a2-02",
+      "name": "Get Enriched Rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [220, 300],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_OUTPUT_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "node-a2-03",
+      "name": "Has Email and No Draft",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [440, 300],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-email",
+              "leftValue": "={{ $json.decision_maker_email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "cond-no-draft",
+              "leftValue": "={{ $json.draft_created }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "node-a2-04",
+      "name": "Loop Over Enriched Rows",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [660, 300],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "node-a2-05",
+      "name": "Create Draft",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [880, 300],
+      "parameters": {
+        "resource": "draft",
+        "operation": "create",
+        "sendTo": "={{ $json.decision_maker_email }}",
+        "subject": "={{ $json.job_title }} at {{ $json.company_name }}",
+        "emailType": "html",
+        "message": "=<p>Hey {{ $json.decision_maker_name.split(' ')[0] }},</p>\n\n<p>I saw you're hiring for {{ $json.job_title }} at {{ $json.company_name }}.</p>\n\n<p>I've attached my resume and cover letter. The cover letter includes demos of automation systems I've built that are directly relevant to this role.</p>\n\n<p><strong>Quick links:</strong></p>\n<ul>\n  <li><a href=\"{{ $json.resume_link }}\">Resume</a></li>\n  <li><a href=\"{{ $json.cover_letter_link }}\">Cover Letter (includes Loom demos)</a></li>\n</ul>\n\n<p>Happy to hop on a quick call if you'd like to learn more.</p>\n\n<p>Best,<br>Izuchukwu Okafor</p>",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "5",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "id": "node-a2-06",
+      "name": "Mark Draft Created",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1100, 300],
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_OUTPUT_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "draft_created": "true"
+          },
+          "matchingColumns": ["job_url"]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{"node": "Get Enriched Rows", "type": "main", "index": 0}]]
+    },
+    "Get Enriched Rows": {
+      "main": [[{"node": "Has Email and No Draft", "type": "main", "index": 0}]]
+    },
+    "Has Email and No Draft": {
+      "main": [[{"node": "Loop Over Enriched Rows", "type": "main", "index": 0}]]
+    },
+    "Loop Over Enriched Rows": {
+      "main": [
+        [{"node": "Create Draft", "type": "main", "index": 0}],
+        []
+      ]
+    },
+    "Create Draft": {
+      "main": [[{"node": "Mark Draft Created", "type": "main", "index": 0}]]
+    },
+    "Mark Draft Created": {
+      "main": [[{"node": "Loop Over Enriched Rows", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "notes": "MODE A – PHASE 2: Run this AFTER manually enriching decision_maker_email (and optionally decision_maker_name) for each row in your output sheet using the Apollo Chrome extension. This workflow reads only rows where decision_maker_email is populated and draft_created != true, creates a Gmail draft for each, and marks draft_created = true so rows are not processed twice."
+  }
+}

@@ -1,0 +1,344 @@
+{
+  "name": "AI Video Editor Workflow",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-0001-0000-0000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "parameters": {}
+    },
+    {
+      "id": "a1b2c3d4-0001-0000-0000-000000000002",
+      "name": "Set Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "inputVideoPath",
+              "value": "/path/to/input/video.mp4"
+            },
+            {
+              "name": "outputFolder",
+              "value": "/path/to/output"
+            },
+            {
+              "name": "scriptsFolder",
+              "value": "/path/to/ai-video-editor/scripts"
+            },
+            {
+              "name": "introText",
+              "value": "Welcome"
+            },
+            {
+              "name": "whisperModel",
+              "value": "base"
+            }
+          ],
+          "number": [
+            {
+              "name": "silenceThreshold",
+              "value": 0.5
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0000-0000-000000000003",
+      "name": "Extract Audio",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "parameters": {
+        "command": "mkdir -p \"{{ $json.outputFolder }}\" && ffmpeg -i \"{{ $json.inputVideoPath }}\" -vn -acodec pcm_s16le -ar 16000 -ac 1 \"{{ $json.outputFolder }}/audio.wav\" -y 2>&1 && echo \"AUDIO_EXTRACTED_OK\""
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0000-0000-000000000004",
+      "name": "Run Silence Detection",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "parameters": {
+        "command": "python3 \"{{ $('Set Variables').item.json.scriptsFolder }}/silence_detection.py\" \"{{ $('Set Variables').item.json.outputFolder }}/audio.wav\" \"{{ $('Set Variables').item.json.outputFolder }}/silence_results.json\" {{ $('Set Variables').item.json.silenceThreshold }} 2>&1"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0000-0000-000000000005",
+      "name": "Process VAD Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "try {\n  var items = $input.all();\n  var stdout = items[0].json.stdout || '{}';\n\n  console.log('VAD stdout (first 300 chars): ' + stdout.substring(0, 300));\n\n  // Extract the last JSON object from stdout (Whisper/VAD may print progress to stdout)\n  var jsonMatch = stdout.match(/\\{[^{}]*\"speech_segments\"[\\s\\S]*\\}/);\n  if (!jsonMatch) {\n    throw new Error('No JSON found in silence detection output. stdout: ' + stdout.substring(0, 500));\n  }\n\n  var vadResults = JSON.parse(jsonMatch[0]);\n\n  if (vadResults.error) {\n    throw new Error('Silence detection script error: ' + vadResults.error);\n  }\n\n  var speechSegments = vadResults.speech_segments || [];\n  var inputVideoPath = $('Set Variables').item.json.inputVideoPath;\n  var outputFolder = $('Set Variables').item.json.outputFolder;\n  var silenceRemovedPath = outputFolder + '/silence_removed.mp4';\n\n  console.log('Speech segments count: ' + speechSegments.length);\n\n  var command;\n\n  if (speechSegments.length === 0) {\n    // No speech — copy as-is\n    console.log('No speech segments found, copying input file');\n    command = 'cp \"' + inputVideoPath + '\" \"' + silenceRemovedPath + '\"';\n  } else {\n    // Build FFmpeg filter_complex to keep only speech segments\n    var filterParts = [];\n    var vStreams = '';\n    var aStreams = '';\n    var n = speechSegments.length;\n\n    for (var i = 0; i < n; i++) {\n      var seg = speechSegments[i];\n      filterParts.push('[0:v]trim=start=' + seg.start.toFixed(3) + ':end=' + seg.end.toFixed(3) + ',setpts=PTS-STARTPTS[v' + i + ']');\n      filterParts.push('[0:a]atrim=start=' + seg.start.toFixed(3) + ':end=' + seg.end.toFixed(3) + ',asetpts=PTS-STARTPTS[a' + i + ']');\n      vStreams += '[v' + i + ']';\n      aStreams += '[a' + i + ']';\n    }\n\n    filterParts.push(vStreams + 'concat=n=' + n + ':v=1:a=0[outv]');\n    filterParts.push(aStreams + 'concat=n=' + n + ':v=0:a=1[outa]');\n\n    var filterComplex = filterParts.join(';');\n    console.log('filter_complex segments: ' + n);\n\n    command = 'ffmpeg -i \"' + inputVideoPath + '\" -filter_complex \"' + filterComplex + '\" -map \"[outv]\" -map \"[outa]\" -c:v libx264 -preset fast -crf 18 -c:a aac -b:a 192k \"' + silenceRemovedPath + '\" -y 2>&1';\n  }\n\n  return [{\n    json: {\n      command: command,\n      silenceRemovedPath: silenceRemovedPath,\n      outputFolder: outputFolder,\n      inputVideoPath: inputVideoPath,\n      segmentCount: speechSegments.length\n    }\n  }];\n\n} catch (e) {\n  console.log('Error in Process VAD Results: ' + e.message);\n  throw new Error('VAD processing failed: ' + e.message);\n}"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0000-0000-000000000006",
+      "name": "Remove Silence",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1340, 300],
+      "parameters": {
+        "command": "{{ $json.command }}"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0000-0000-000000000007",
+      "name": "Run Trigger Detection",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1560, 300],
+      "parameters": {
+        "command": "python3 \"{{ $('Set Variables').item.json.scriptsFolder }}/trigger_word_detection.py\" \"{{ $('Process VAD Results').item.json.silenceRemovedPath }}\" \"{{ $('Set Variables').item.json.outputFolder }}/trigger_results.json\" {{ $('Set Variables').item.json.whisperModel }} 2>&1"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0000-0000-000000000008",
+      "name": "Process Cut Points",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "try {\n  var items = $input.all();\n  var stdout = items[0].json.stdout || '{}';\n\n  console.log('Trigger detection stdout (first 300 chars): ' + stdout.substring(0, 300));\n\n  var jsonMatch = stdout.match(/\\{[^{}]*\"cut_segments\"[\\s\\S]*\\}/);\n  if (!jsonMatch) {\n    throw new Error('No JSON found in trigger detection output. stdout: ' + stdout.substring(0, 500));\n  }\n\n  var detectionResults = JSON.parse(jsonMatch[0]);\n\n  if (detectionResults.error) {\n    throw new Error('Trigger detection script error: ' + detectionResults.error);\n  }\n\n  var cutSegments = detectionResults.cut_segments || [];\n  var duration = detectionResults.duration || 0;\n  var outputFolder = $('Set Variables').item.json.outputFolder;\n  var silenceRemovedPath = $('Process VAD Results').item.json.silenceRemovedPath;\n  var mistakesRemovedPath = outputFolder + '/mistakes_removed.mp4';\n\n  console.log('Segments to cut: ' + cutSegments.length);\n\n  var command;\n\n  if (cutSegments.length === 0) {\n    console.log('No trigger words found, copying file');\n    command = 'cp \"' + silenceRemovedPath + '\" \"' + mistakesRemovedPath + '\"';\n  } else {\n    // Build keep segments (everything NOT in cut_segments)\n    var keepSegments = [];\n    var prevEnd = 0.0;\n\n    for (var i = 0; i < cutSegments.length; i++) {\n      var cut = cutSegments[i];\n      if (prevEnd < cut.start - 0.001) {\n        keepSegments.push({ start: prevEnd, end: cut.start });\n      }\n      prevEnd = cut.end;\n    }\n\n    // Keep everything after the last cut\n    if (duration > 0 && prevEnd < duration - 0.1) {\n      keepSegments.push({ start: prevEnd, end: duration });\n    } else if (duration === 0) {\n      // Duration unknown — trim to a large number (FFmpeg will stop at EOF)\n      keepSegments.push({ start: prevEnd, end: 99999.0 });\n    }\n\n    if (keepSegments.length === 0) {\n      throw new Error('No keep segments remain after cutting — entire video would be deleted');\n    }\n\n    var filterParts = [];\n    var vStreams = '';\n    var aStreams = '';\n    var n = keepSegments.length;\n\n    for (var j = 0; j < n; j++) {\n      var seg = keepSegments[j];\n      filterParts.push('[0:v]trim=start=' + seg.start.toFixed(3) + ':end=' + seg.end.toFixed(3) + ',setpts=PTS-STARTPTS[v' + j + ']');\n      filterParts.push('[0:a]atrim=start=' + seg.start.toFixed(3) + ':end=' + seg.end.toFixed(3) + ',asetpts=PTS-STARTPTS[a' + j + ']');\n      vStreams += '[v' + j + ']';\n      aStreams += '[a' + j + ']';\n    }\n\n    filterParts.push(vStreams + 'concat=n=' + n + ':v=1:a=0[outv]');\n    filterParts.push(aStreams + 'concat=n=' + n + ':v=0:a=1[outa]');\n\n    var filterComplex = filterParts.join(';');\n    console.log('Generated keep filter_complex with ' + n + ' segments');\n\n    command = 'ffmpeg -i \"' + silenceRemovedPath + '\" -filter_complex \"' + filterComplex + '\" -map \"[outv]\" -map \"[outa]\" -c:v libx264 -preset fast -crf 18 -c:a aac -b:a 192k \"' + mistakesRemovedPath + '\" -y 2>&1';\n  }\n\n  return [{\n    json: {\n      command: command,\n      mistakesRemovedPath: mistakesRemovedPath,\n      outputFolder: outputFolder\n    }\n  }];\n\n} catch (e) {\n  console.log('Error in Process Cut Points: ' + e.message);\n  throw new Error('Cut point processing failed: ' + e.message);\n}"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0000-0000-000000000009",
+      "name": "Cut Mistake Segments",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2000, 300],
+      "parameters": {
+        "command": "{{ $json.command }}"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0000-0000-000000000010",
+      "name": "Enhance Audio",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2220, 300],
+      "parameters": {
+        "command": "ffmpeg -i \"{{ $('Process Cut Points').item.json.mistakesRemovedPath }}\" -af \"loudnorm=I=-16:TP=-1.5:LRA=11,highpass=f=80,lowpass=f=12000,acompressor=threshold=0.089:ratio=9:attack=200:release=1000\" -c:v copy \"{{ $('Process Cut Points').item.json.outputFolder }}/audio_enhanced.mp4\" -y 2>&1 && echo \"AUDIO_ENHANCED_OK\""
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0000-0000-000000000011",
+      "name": "Apply Color Grading",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2440, 300],
+      "parameters": {
+        "command": "ffmpeg -i \"{{ $('Process Cut Points').item.json.outputFolder }}/audio_enhanced.mp4\" -vf \"eq=contrast=1.15:saturation=0.9:brightness=0.02,colortemperature=temperature=6500\" -c:a copy \"{{ $('Process Cut Points').item.json.outputFolder }}/color_graded.mp4\" -y 2>&1 && echo \"COLOR_GRADED_OK\""
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0000-0000-000000000012",
+      "name": "Add Intro Animation",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2660, 300],
+      "parameters": {
+        "command": "FONT=$(fc-match --format='%{file}' 'DejaVu Sans:bold' 2>/dev/null || echo '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf') && ffmpeg -i \"{{ $('Process Cut Points').item.json.outputFolder }}/color_graded.mp4\" -filter_complex \"color=c=black:s=1920x1080:d=3:r=30[intro_v];aevalsrc=0:c=stereo:s=44100:d=3[intro_a];[intro_v]drawtext=fontfile=${FONT}:text='{{ $('Set Variables').item.json.introText }}':fontcolor=white:fontsize=72:x=(w-text_w)/2:y=(h-text_h)/2[intro_titled];[intro_titled][0:v]concat=n=2:v=1:a=0[outv];[intro_a][0:a]concat=n=2:v=0:a=1[outa]\" -map \"[outv]\" -map \"[outa]\" -c:v libx264 -preset fast -crf 18 -c:a aac -b:a 192k \"{{ $('Process Cut Points').item.json.outputFolder }}/with_intro.mp4\" -y 2>&1 && echo \"INTRO_ADDED_OK\""
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0000-0000-000000000013",
+      "name": "Final Export",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2880, 300],
+      "parameters": {
+        "command": "INPUT_BASENAME=$(basename \"{{ $('Set Variables').item.json.inputVideoPath }}\" .mp4) && ffmpeg -i \"{{ $('Process Cut Points').item.json.outputFolder }}/with_intro.mp4\" -c:v libx264 -preset medium -crf 18 -profile:v high -level 4.1 -movflags +faststart -c:a aac -b:a 192k -ar 44100 \"{{ $('Process Cut Points').item.json.outputFolder }}/${INPUT_BASENAME}_edited.mp4\" -y 2>&1 && echo \"FINAL_EXPORT_OK\""
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0000-0000-000000000014",
+      "name": "Return Output Path",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [3100, 300],
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "completed"
+            },
+            {
+              "name": "outputFolder",
+              "value": "={{ $('Process Cut Points').item.json.outputFolder }}"
+            },
+            {
+              "name": "message",
+              "value": "Video editing complete. Check outputFolder for the _edited.mp4 file."
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Variables": {
+      "main": [
+        [
+          {
+            "node": "Extract Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Audio": {
+      "main": [
+        [
+          {
+            "node": "Run Silence Detection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Silence Detection": {
+      "main": [
+        [
+          {
+            "node": "Process VAD Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process VAD Results": {
+      "main": [
+        [
+          {
+            "node": "Remove Silence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Silence": {
+      "main": [
+        [
+          {
+            "node": "Run Trigger Detection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Trigger Detection": {
+      "main": [
+        [
+          {
+            "node": "Process Cut Points",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Cut Points": {
+      "main": [
+        [
+          {
+            "node": "Cut Mistake Segments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cut Mistake Segments": {
+      "main": [
+        [
+          {
+            "node": "Enhance Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enhance Audio": {
+      "main": [
+        [
+          {
+            "node": "Apply Color Grading",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Color Grading": {
+      "main": [
+        [
+          {
+            "node": "Add Intro Animation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Intro Animation": {
+      "main": [
+        [
+          {
+            "node": "Final Export",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final Export": {
+      "main": [
+        [
+          {
+            "node": "Return Output Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

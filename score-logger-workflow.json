@@ -1,0 +1,343 @@
+{
+  "name": "Score Logger & Performance Tracker",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "id": "d1111111-1111-1111-1111-111111111101",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300],
+      "webhookId": "score-logger-webhook-v1",
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "score-prefix-check",
+              "leftValue": "={{ ($json.message?.text || '').toUpperCase().startsWith('SCORE:') }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true
+      },
+      "id": "d1111111-1111-1111-1111-111111111102",
+      "name": "Check SCORE Prefix",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = $input.first().json.message || {};\nconst text = msg.text || '';\nconst chatId = msg.chat?.id;\n\nconst match = text.match(/SCORE:\\s*(\\d+)\\s*\\/\\s*(\\d+)/i);\nif (!match) {\n  return [{ json: {\n    parse_error: true,\n    chat_id: chatId,\n    original_text: text,\n    error_message: 'Could not parse score. Please use format: SCORE: 7/10'\n  } }];\n}\n\nconst score = parseInt(match[1]);\nconst total = parseInt(match[2]);\nconst percentage = total > 0 ? Math.round((score / total) * 100) : 0;\n\nreturn [{ json: {\n  parse_error: false,\n  score,\n  total,\n  percentage,\n  chat_id: chatId,\n  date: new Date().toISOString().split('T')[0],\n  original_text: text\n} }];"
+      },
+      "id": "d1111111-1111-1111-1111-111111111103",
+      "name": "Parse Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "parse-error-check",
+              "leftValue": "={{ $json.parse_error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true
+      },
+      "id": "d1111111-1111-1111-1111-111111111104",
+      "name": "Check Parse Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [950, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "❌ *{{ $json.error_message }}*\n\nExample: `SCORE: 7/10`",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "d1111111-1111-1111-1111-111111111105",
+      "name": "Send Error Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1200, 500],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "readAllRows",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_TIMETABLE_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Timetable",
+          "mode": "name"
+        }
+      },
+      "id": "d1111111-1111-1111-1111-111111111106",
+      "name": "Read Timetable",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1200, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "4",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst scoreData = $('Parse Score').first().json;\n\nconst today = new Date();\nconst days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];\nconst dayName = days[today.getDay()];\n\nlet todayRow = null;\nfor (const item of items) {\n  const rowDay = (item.json.Day || item.json.day || '').toString().trim();\n  if (rowDay.toLowerCase() === dayName.toLowerCase()) {\n    todayRow = item.json;\n    break;\n  }\n}\n\nconst course = todayRow ? (todayRow.Course || todayRow.course || 'Unknown Course') : 'Unknown Course';\n\nreturn [{ json: {\n  course,\n  day: dayName,\n  score: scoreData.score,\n  total: scoreData.total,\n  percentage: scoreData.percentage,\n  chat_id: scoreData.chat_id,\n  date: scoreData.date\n} }];"
+      },
+      "id": "d1111111-1111-1111-1111-111111111107",
+      "name": "Find Course for Today",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_TIMETABLE_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Quiz Log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $json.date }}",
+            "Course": "={{ $json.course }}",
+            "Score": "={{ $json.score }}",
+            "Total": "={{ $json.total }}",
+            "Percentage": "={{ $json.percentage }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "d1111111-1111-1111-1111-111111111108",
+      "name": "Log to Quiz Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1700, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "4",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_TIMETABLE_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Performance",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $json.date }}",
+            "Course": "={{ $json.course }}",
+            "Score": "={{ $json.score }}",
+            "Total": "={{ $json.total }}",
+            "Percentage": "={{ $json.percentage }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "d1111111-1111-1111-1111-111111111109",
+      "name": "Log to Performance Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1950, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "4",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "readAllRows",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_TIMETABLE_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Performance",
+          "mode": "name"
+        }
+      },
+      "id": "d1111111-1111-1111-1111-111111111110",
+      "name": "Read Performance History",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [2200, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "4",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nconst courseData = $('Find Course for Today').first().json;\n\nconst recent = rows.slice(-10);\n\nconst dateStr = new Date().toLocaleDateString('en-NG', {\n  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'\n});\n\nlet summary = `📊 *Quiz Performance Summary*\\n📅 ${dateStr}\\n\\n`;\nsummary += `✅ *Today:* ${courseData.score}/${courseData.total} (${courseData.percentage}%) — _${courseData.course}_\\n\\n`;\n\nif (recent.length > 0) {\n  summary += `*Recent Results (last ${recent.length}):*\\n`;\n  for (const row of recent) {\n    const d = (row.json.Date || 'N/A').substring(5);\n    const c = (row.json.Course || 'N/A').substring(0, 10);\n    const sc = parseInt(row.json.Score || 0);\n    const tot = parseInt(row.json.Total || 10);\n    const pct = tot > 0 ? Math.round((sc / tot) * 100) : 0;\n    const filled = Math.round(pct / 10);\n    const bar = '█'.repeat(filled) + '░'.repeat(10 - filled);\n    summary += `${d} | ${c}: [${bar}] ${sc}/${tot}\\n`;\n  }\n\n  const avg = recent.reduce((sum, r) => {\n    const sc = parseInt(r.json.Score || 0);\n    const tot = parseInt(r.json.Total || 10);\n    return sum + (tot > 0 ? sc / tot : 0);\n  }, 0) / recent.length * 100;\n\n  summary += `\\n*Overall Average: ${Math.round(avg)}%*\\n\\n`;\n\n  let motivation;\n  if (avg >= 80) motivation = '🌟 Excellent! You are on the honour roll track!';\n  else if (avg >= 65) motivation = '💪 Good work! Keep pushing for that A grade!';\n  else if (avg >= 50) motivation = '📚 Steady progress. More review will push you higher!';\n  else motivation = '🔥 Do not stop! Every quiz is a step forward. You got this!';\n\n  summary += motivation;\n} else {\n  summary += '_No history yet. Keep taking quizzes!_';\n}\n\nreturn [{ json: { summary_text: summary, chat_id: courseData.chat_id } }];"
+      },
+      "id": "d1111111-1111-1111-1111-111111111111",
+      "name": "Build Performance Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2450, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.summary_text }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "d1111111-1111-1111-1111-111111111112",
+      "name": "Send Summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2700, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [{ "node": "Check SCORE Prefix", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check SCORE Prefix": {
+      "main": [
+        [{ "node": "Parse Score", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Parse Score": {
+      "main": [
+        [{ "node": "Check Parse Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check Parse Error": {
+      "main": [
+        [{ "node": "Send Error Message", "type": "main", "index": 0 }],
+        [{ "node": "Read Timetable", "type": "main", "index": 0 }]
+      ]
+    },
+    "Read Timetable": {
+      "main": [
+        [{ "node": "Find Course for Today", "type": "main", "index": 0 }]
+      ]
+    },
+    "Find Course for Today": {
+      "main": [
+        [{ "node": "Log to Quiz Sheet", "type": "main", "index": 0 }]
+      ]
+    },
+    "Log to Quiz Sheet": {
+      "main": [
+        [{ "node": "Log to Performance Sheet", "type": "main", "index": 0 }]
+      ]
+    },
+    "Log to Performance Sheet": {
+      "main": [
+        [{ "node": "Read Performance History", "type": "main", "index": 0 }]
+      ]
+    },
+    "Read Performance History": {
+      "main": [
+        [{ "node": "Build Performance Summary", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Performance Summary": {
+      "main": [
+        [{ "node": "Send Summary", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

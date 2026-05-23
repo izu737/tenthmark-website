@@ -1,0 +1,511 @@
+{
+  "name": "Daily Quiz Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "triggerAtHour": 20,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "c1111111-1111-1111-1111-111111111101",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-chat-id",
+              "name": "chat_id",
+              "value": "YOUR_TELEGRAM_CHAT_ID",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c1111111-1111-1111-1111-111111111102",
+      "name": "Set Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "readAllRows",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_TIMETABLE_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Timetable",
+          "mode": "name"
+        }
+      },
+      "id": "c1111111-1111-1111-1111-111111111103",
+      "name": "Read Timetable",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [700, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "4",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst today = new Date();\nconst days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];\nconst dayName = days[today.getDay()];\nconst chatId = $('Set Config').first().json.chat_id;\n\nlet todayRow = null;\nfor (const item of items) {\n  const rowDay = (item.json.Day || item.json.day || '').toString().trim();\n  if (rowDay.toLowerCase() === dayName.toLowerCase()) {\n    todayRow = item.json;\n    break;\n  }\n}\n\nif (!todayRow) {\n  return [{ json: { found: false, day: dayName, course: 'General', chat_id: chatId } }];\n}\n\nreturn [{ json: {\n  found: true,\n  day: dayName,\n  course: todayRow.Course || todayRow.course || 'General',\n  chat_id: chatId\n} }];"
+      },
+      "id": "c1111111-1111-1111-1111-111111111104",
+      "name": "Find Todays Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [950, 300]
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "operation": "search",
+        "queryFilters": {
+          "driveId": {
+            "__rl": true,
+            "value": "myDrive",
+            "mode": "list",
+            "cachedResultName": "My Drive"
+          },
+          "includeTrash": false
+        },
+        "filter": "={{ \"name contains '\" + $json.course + \"'\" }}",
+        "limit": 5
+      },
+      "id": "c1111111-1111-1111-1111-111111111105",
+      "name": "Search Drive for Notes",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1200, 300],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "3",
+          "name": "Google Drive OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst prevData = $('Find Todays Row').first().json;\n\nif (!items || items.length === 0 || !items[0].json.id) {\n  return [{ json: {\n    found: false,\n    file_id: '',\n    file_name: '',\n    course: prevData.course,\n    chat_id: prevData.chat_id\n  } }];\n}\n\nconst file = items[0].json;\nreturn [{ json: {\n  found: true,\n  file_id: file.id,\n  file_name: file.name || '',\n  course: prevData.course,\n  chat_id: prevData.chat_id\n} }];"
+      },
+      "id": "c1111111-1111-1111-1111-111111111106",
+      "name": "Extract File ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "file-found-check",
+              "leftValue": "={{ $json.found }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true
+      },
+      "id": "c1111111-1111-1111-1111-111111111107",
+      "name": "File Found Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1700, 300]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.file_id }}",
+          "mode": "id"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain"
+            }
+          }
+        }
+      },
+      "id": "c1111111-1111-1111-1111-111111111108",
+      "name": "Download Notes File",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1950, 300],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "3",
+          "name": "Google Drive OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "📭 No notes file found for today's *{{ $json.course }}* class.\n\nPlease upload your study notes to Google Drive with the course name in the filename.",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "c1111111-1111-1111-1111-111111111109",
+      "name": "No File Found Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1950, 500],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst binaryData = item.binary;\nconst propName = binaryData ? Object.keys(binaryData)[0] : null;\nconst prevData = $('Extract File ID').first().json;\n\nlet content = '';\nif (propName && binaryData[propName]) {\n  content = Buffer.from(binaryData[propName].data, 'base64').toString('utf8');\n}\n\nreturn [{ json: {\n  file_content: content,\n  file_name: prevData.file_name,\n  course: prevData.course,\n  chat_id: prevData.chat_id\n} }];"
+      },
+      "id": "c1111111-1111-1111-1111-111111111110",
+      "name": "Read File Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2200, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "⚙️ Generating your *{{ $json.course }}* quiz from today's notes\\.\\.\\. This takes about 30 seconds\\.",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "c1111111-1111-1111-1111-111111111111",
+      "name": "Send Generating Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2450, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const course = $json.course;\nconst fileContent = $json.file_content;\nconst chatId = $json.chat_id;\nconst today = new Date().toISOString().split('T')[0];\n\nconst systemPrompt = `You are a quiz generator for a Nigerian federal university computer engineering student. You will receive study notes. Generate a quiz from those notes.\\n\\nReturn your response in this EXACT JSON format and nothing else — no markdown, no explanation, just the JSON:\\n\\n{\\n  \"quiz_title\": \"[Course Name] Quiz — [Date]\",\\n  \"questions\": [\\n    {\\n      \"number\": 1,\\n      \"question\": \"Question text here\",\\n      \"type\": \"multiple_choice OR short_answer OR calculation\",\\n      \"options\": [\"A) option\", \"B) option\", \"C) option\", \"D) option\"],\\n      \"answer\": \"Full model answer here\",\\n      \"explanation\": \"Why this is the answer\"\\n    }\\n  ]\\n}\\n\\nGenerate exactly 10 questions. Mix types: 5 multiple choice, 3 short answer, 2 calculation or application questions. For multiple choice, always include 4 options A through D. For short answer and calculation questions, the options field should be an empty array [].\\n\\nBase all questions strictly on the provided notes. Do not invent topics not covered in the notes.`;\n\nconst requestBody = JSON.stringify({\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 4000,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: `Course: ${course}\\nDate: ${today}\\n\\nStudy Notes:\\n${fileContent}` }]\n});\n\nreturn [{ json: { request_body: requestBody, course, chat_id: chatId } }];"
+      },
+      "id": "c1111111-1111-1111-1111-111111111112",
+      "name": "Build Quiz Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2700, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.request_body }}"
+      },
+      "id": "c1111111-1111-1111-1111-111111111113",
+      "name": "Generate Quiz with Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2950, 300],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawResponse = ($input.first().json.content || [])[0]?.text || '';\nconst prevData = $('Build Quiz Request').first().json;\n\nlet quizData;\ntry {\n  const cleaned = rawResponse.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n  quizData = JSON.parse(cleaned);\n} catch(e) {\n  quizData = { quiz_title: prevData.course + ' Quiz', questions: [] };\n}\n\nconst questions = quizData.questions || [];\nconst title = quizData.quiz_title || prevData.course + ' Quiz';\n\nlet questionsText = `📚 *${title}*\\n\\n_Answer each question below, then send your score using:_ *SCORE: X/10*\\n\\n`;\nfor (const q of questions) {\n  questionsText += `*${q.number}.* ${q.question}\\n`;\n  if (q.options && q.options.length > 0) {\n    questionsText += q.options.join('\\n') + '\\n';\n  }\n  questionsText += '\\n';\n}\n\nlet answersText = `✅ *Answers — ${title}*\\n\\n`;\nfor (const q of questions) {\n  answersText += `*Q${q.number}:* ${q.answer}\\n`;\n  if (q.explanation) {\n    answersText += `💡 _${q.explanation}_\\n`;\n  }\n  answersText += '\\n';\n}\n\nreturn [{ json: {\n  quiz_title: title,\n  questions_text: questionsText,\n  answers_text: answersText,\n  course: prevData.course,\n  chat_id: prevData.chat_id,\n  questions_count: questions.length\n} }];"
+      },
+      "id": "c1111111-1111-1111-1111-111111111114",
+      "name": "Parse Quiz Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3200, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Build Quiz Request').first().json.chat_id }}",
+        "text": "❌ Failed to generate quiz. Please check your Claude API credentials and try again.",
+        "additionalFields": {}
+      },
+      "id": "c1111111-1111-1111-1111-111111111115",
+      "name": "Quiz Generation Error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3200, 500],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_TIMETABLE_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Quiz Log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $now.format('yyyy-MM-dd') }}",
+            "Course": "={{ $json.course }}",
+            "Quiz Title": "={{ $json.quiz_title }}",
+            "Questions Count": "={{ $json.questions_count }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "c1111111-1111-1111-1111-111111111116",
+      "name": "Log to Quiz Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [3450, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "4",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.questions_text }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "c1111111-1111-1111-1111-111111111117",
+      "name": "Send Quiz Questions",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3700, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 25,
+        "unit": "minutes"
+      },
+      "id": "c1111111-1111-1111-1111-111111111118",
+      "name": "Wait 25 Minutes",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [3950, 300],
+      "webhookId": "quiz-wait-webhook-v1"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Parse Quiz Response').first().json.chat_id }}",
+        "text": "={{ $('Parse Quiz Response').first().json.answers_text }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "c1111111-1111-1111-1111-111111111119",
+      "name": "Send Quiz Answers",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [4200, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Parse Quiz Response').first().json.chat_id }}",
+        "text": "📝 *Score your quiz!*\n\nHow many did you get right? Send your score in this format:\n\n`SCORE: X/10`\n\nExample: `SCORE: 7/10`",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "c1111111-1111-1111-1111-111111111120",
+      "name": "Send Score Reminder",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [4450, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [{ "node": "Set Config", "type": "main", "index": 0 }]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [{ "node": "Read Timetable", "type": "main", "index": 0 }]
+      ]
+    },
+    "Read Timetable": {
+      "main": [
+        [{ "node": "Find Todays Row", "type": "main", "index": 0 }]
+      ]
+    },
+    "Find Todays Row": {
+      "main": [
+        [{ "node": "Search Drive for Notes", "type": "main", "index": 0 }]
+      ]
+    },
+    "Search Drive for Notes": {
+      "main": [
+        [{ "node": "Extract File ID", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extract File ID": {
+      "main": [
+        [{ "node": "File Found Check", "type": "main", "index": 0 }]
+      ]
+    },
+    "File Found Check": {
+      "main": [
+        [{ "node": "Download Notes File", "type": "main", "index": 0 }],
+        [{ "node": "No File Found Message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Download Notes File": {
+      "main": [
+        [{ "node": "Read File Content", "type": "main", "index": 0 }]
+      ]
+    },
+    "Read File Content": {
+      "main": [
+        [{ "node": "Send Generating Message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Generating Message": {
+      "main": [
+        [{ "node": "Build Quiz Request", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Quiz Request": {
+      "main": [
+        [{ "node": "Generate Quiz with Claude", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generate Quiz with Claude": {
+      "main": [
+        [{ "node": "Parse Quiz Response", "type": "main", "index": 0 }],
+        [{ "node": "Quiz Generation Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Quiz Response": {
+      "main": [
+        [{ "node": "Log to Quiz Sheet", "type": "main", "index": 0 }]
+      ]
+    },
+    "Log to Quiz Sheet": {
+      "main": [
+        [{ "node": "Send Quiz Questions", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Quiz Questions": {
+      "main": [
+        [{ "node": "Wait 25 Minutes", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait 25 Minutes": {
+      "main": [
+        [{ "node": "Send Quiz Answers", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Quiz Answers": {
+      "main": [
+        [{ "node": "Send Score Reminder", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Africa/Lagos"
+  }
+}

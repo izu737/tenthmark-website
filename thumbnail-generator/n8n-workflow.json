@@ -1,0 +1,373 @@
+{
+  "name": "AI Thumbnail Generator with Face Swap",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "thumbnail-generator",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "thumbnail-generator"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "replicateApiKey",
+              "value": "={{$env.REPLICATE_API_KEY}}"
+            },
+            {
+              "name": "replicateModel",
+              "value": "yan-ops/face-swap"
+            },
+            {
+              "name": "replicateVersion",
+              "value": "latest"
+            },
+            {
+              "name": "outputFolder",
+              "value": "/home/user/tenthmark-website/thumbnail-generator/output"
+            },
+            {
+              "name": "referencePhotosFolder",
+              "value": "/home/user/tenthmark-website/thumbnail-generator/reference_photos"
+            },
+            {
+              "name": "inputUrl",
+              "value": "={{$json.body.url}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-set-vars",
+      "name": "Set Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Detect if input is YouTube URL or direct image URL\nconst url = $input.first().json.inputUrl;\nconst isYoutube = /(?:youtube\\.com\\/watch\\?v=|youtu\\.be\\/)([a-zA-Z0-9_-]{11})/.test(url);\n\nlet thumbnailUrl = url;\nif (isYoutube) {\n  const match = url.match(/(?:youtube\\.com\\/watch\\?v=|youtu\\.be\\/)([a-zA-Z0-9_-]{11})/);\n  const videoId = match[1];\n  // Use maxresdefault for 1920x1080; fall back to hqdefault\n  thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;\n}\n\nreturn [{ json: { ...($input.first().json), thumbnailUrl, isYoutube } }];"
+      },
+      "id": "node-resolve-url",
+      "name": "Resolve Thumbnail URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$json.thumbnailUrl}}",
+        "responseFormat": "file",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "node-download-thumbnail",
+      "name": "Download Source Thumbnail",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "command": "=python3 /home/user/tenthmark-website/thumbnail-generator/scripts/face_detection.py \"{{$json.thumbnailUrl}}\" \"{{$json.outputFolder}}\""
+      },
+      "id": "node-face-detection",
+      "name": "Analyze Face Direction",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse face detection output and find best reference photo match\nconst output = $input.first().json.stdout;\nlet faceData;\ntry {\n  faceData = JSON.parse(output);\n} catch (e) {\n  throw new Error('Face detection failed: ' + output);\n}\n\nconst { yaw, pitch } = faceData;\n\n// Reference photo angles (name -> [yaw_degrees, pitch_degrees])\nconst referenceAngles = {\n  'front_center.jpg': [0, 0],\n  'left_15.jpg': [-15, 0],\n  'left_30.jpg': [-30, 0],\n  'right_15.jpg': [15, 0],\n  'right_30.jpg': [30, 0],\n  'tilt_up_15.jpg': [0, -15],\n  'tilt_down_15.jpg': [0, 15],\n  'left_15_up_10.jpg': [-15, -10],\n  'right_15_up_10.jpg': [15, -10]\n};\n\n// Euclidean distance calculation\nconst distances = Object.entries(referenceAngles).map(([photo, [refYaw, refPitch]]) => ({\n  photo,\n  distance: Math.sqrt(Math.pow(yaw - refYaw, 2) + Math.pow(pitch - refPitch, 2))\n}));\n\n// Sort by closest match\ndistances.sort((a, b) => a.distance - b.distance);\nconst top3 = distances.slice(0, 3);\n\nconst referencePhotosFolder = $input.first().json.referencePhotosFolder;\n\nreturn [{\n  json: {\n    ...($input.first().json),\n    faceYaw: yaw,\n    facePitch: pitch,\n    bestMatch: referencePhotosFolder + '/' + top3[0].photo,\n    top3Matches: top3.map(m => ({ ...m, fullPath: referencePhotosFolder + '/' + m.photo }))\n  }\n}];"
+      },
+      "id": "node-find-best-ref",
+      "name": "Find Best Reference Photo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.replicate.com/v1/predictions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Token {{$json.replicateApiKey}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "version",
+              "value": "=latest"
+            }
+          ]
+        },
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"version\": \"latest\",\n  \"input\": {\n    \"target_image\": \"{{$json.thumbnailUrl}}\",\n    \"swap_image\": \"{{$json.bestMatch}}\",\n    \"face_index\": 0\n  }\n}",
+        "options": {}
+      },
+      "id": "node-replicate-v1",
+      "name": "Replicate Face Swap - Variation 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1560, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.replicate.com/v1/predictions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Token {{$json.replicateApiKey}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"version\": \"latest\",\n  \"input\": {\n    \"target_image\": \"{{$json.thumbnailUrl}}\",\n    \"swap_image\": \"{{$json.top3Matches[1].fullPath}}\",\n    \"face_index\": 0,\n    \"enhancement_strength\": 0.8\n  }\n}",
+        "options": {}
+      },
+      "id": "node-replicate-v2",
+      "name": "Replicate Face Swap - Variation 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.replicate.com/v1/predictions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Token {{$json.replicateApiKey}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"version\": \"latest\",\n  \"input\": {\n    \"target_image\": \"{{$json.thumbnailUrl}}\",\n    \"swap_image\": \"{{$json.top3Matches[2].fullPath}}\",\n    \"face_index\": 0,\n    \"enhancement_strength\": 1.0\n  }\n}",
+        "options": {}
+      },
+      "id": "node-replicate-v3",
+      "name": "Replicate Face Swap - Variation 3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1560, 440]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.replicate.com/v1/predictions/{{$json.id}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Token {{$node['Set Variables'].json.replicateApiKey}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-poll-v1",
+      "name": "Poll Result - Variation 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1780, 160]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.replicate.com/v1/predictions/{{$json.id}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Token {{$node['Set Variables'].json.replicateApiKey}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-poll-v2",
+      "name": "Poll Result - Variation 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.replicate.com/v1/predictions/{{$json.id}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Token {{$node['Set Variables'].json.replicateApiKey}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-poll-v3",
+      "name": "Poll Result - Variation 3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1780, 440]
+    },
+    {
+      "parameters": {
+        "command": "=python3 /home/user/tenthmark-website/thumbnail-generator/scripts/text_replacement.py \"{{$node['Set Variables'].json.thumbnailUrl}}\" \"{{$node['Set Variables'].json.outputFolder}}\""
+      },
+      "id": "node-ocr-text",
+      "name": "OCR Text Detection (Optional)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2000, 440]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect all variation results and save metadata\nconst v1 = $input.all()[0].json;\nconst v2 = $input.all()[1].json;\nconst v3 = $input.all()[2].json;\n\nconst outputFolder = $node['Set Variables'].json.outputFolder;\nconst timestamp = Date.now();\n\nconst results = [\n  { variation: 1, url: v1.output, status: v1.status, localPath: `${outputFolder}/thumbnail_v1_${timestamp}.jpg` },\n  { variation: 2, url: v2.output, status: v2.status, localPath: `${outputFolder}/thumbnail_v2_${timestamp}.jpg` },\n  { variation: 3, url: v3.output, status: v3.status, localPath: `${outputFolder}/thumbnail_v3_${timestamp}.jpg` }\n];\n\nreturn [{ json: { results, outputFolder, timestamp, success: true } }];"
+      },
+      "id": "node-collect-results",
+      "name": "Collect & Save Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "success"
+            }
+          ],
+          "object": [
+            {
+              "name": "thumbnails",
+              "value": "={{$json.results}}"
+            }
+          ],
+          "number": [
+            {
+              "name": "generatedAt",
+              "value": "={{$json.timestamp}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-return-output",
+      "name": "Return Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [2440, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{ "node": "Set Variables", "type": "main", "index": 0 }]]
+    },
+    "Set Variables": {
+      "main": [[{ "node": "Resolve Thumbnail URL", "type": "main", "index": 0 }]]
+    },
+    "Resolve Thumbnail URL": {
+      "main": [[{ "node": "Download Source Thumbnail", "type": "main", "index": 0 }]]
+    },
+    "Download Source Thumbnail": {
+      "main": [[{ "node": "Analyze Face Direction", "type": "main", "index": 0 }]]
+    },
+    "Analyze Face Direction": {
+      "main": [[{ "node": "Find Best Reference Photo", "type": "main", "index": 0 }]]
+    },
+    "Find Best Reference Photo": {
+      "main": [
+        [
+          { "node": "Replicate Face Swap - Variation 1", "type": "main", "index": 0 },
+          { "node": "Replicate Face Swap - Variation 2", "type": "main", "index": 0 },
+          { "node": "Replicate Face Swap - Variation 3", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Replicate Face Swap - Variation 1": {
+      "main": [[{ "node": "Poll Result - Variation 1", "type": "main", "index": 0 }]]
+    },
+    "Replicate Face Swap - Variation 2": {
+      "main": [[{ "node": "Poll Result - Variation 2", "type": "main", "index": 0 }]]
+    },
+    "Replicate Face Swap - Variation 3": {
+      "main": [[{ "node": "Poll Result - Variation 3", "type": "main", "index": 0 }]]
+    },
+    "Poll Result - Variation 1": {
+      "main": [[{ "node": "Collect & Save Results", "type": "main", "index": 0 }]]
+    },
+    "Poll Result - Variation 2": {
+      "main": [[{ "node": "Collect & Save Results", "type": "main", "index": 0 }]]
+    },
+    "Poll Result - Variation 3": {
+      "main": [[{ "node": "Collect & Save Results", "type": "main", "index": 0 }]]
+    },
+    "Collect & Save Results": {
+      "main": [[{ "node": "Return Output", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "1.0.0",
+  "triggerCount": 0,
+  "tags": ["thumbnail", "face-swap", "youtube", "replicate"]
+}

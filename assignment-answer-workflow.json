@@ -1,0 +1,604 @@
+{
+  "name": "Assignment Answer Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "id": "b1111111-1111-1111-1111-111111111101",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 400],
+      "webhookId": "assignment-answer-webhook-v1",
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "rules": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.text != null && $json.message.text.toUpperCase().startsWith('COURSE:') }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "set course"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.photo }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "array",
+                      "operation": "notEmpty"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "photo question"
+            }
+          ]
+        },
+        "fallbackOutput": "extra"
+      },
+      "id": "b1111111-1111-1111-1111-111111111102",
+      "name": "Detect Message Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "Send me a photo of your assignment question, OR set your course first by typing:\n\nCOURSE: [your course name]\n\nExample: COURSE: Digital Electronics",
+        "additionalFields": {}
+      },
+      "id": "b1111111-1111-1111-1111-111111111103",
+      "name": "Unknown Input Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [680, 620],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.message.text;\nconst chatId = $input.first().json.message.chat.id;\nconst courseName = text.replace(/^COURSE:\\s*/i, '').trim();\n\nconst workflowStaticData = $getWorkflowStaticData('global');\nworkflowStaticData[`course_${chatId}`] = courseName;\n\nreturn [{ json: { chat_id: chatId, course_name: courseName } }];"
+      },
+      "id": "b1111111-1111-1111-1111-111111111104",
+      "name": "Save Course Name",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 220]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ '✅ Course set to: ' + $json.course_name + '\\n\\nNow send me a photo of your assignment question!' }}",
+        "additionalFields": {}
+      },
+      "id": "b1111111-1111-1111-1111-111111111105",
+      "name": "Confirm Course Set",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [900, 220],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = $input.first().json.message;\nconst photos = message.photo;\nconst largest = photos[photos.length - 1];\nconst chatId = message.chat.id;\n\nconst workflowStaticData = $getWorkflowStaticData('global');\nconst courseName = workflowStaticData[`course_${chatId}`] || 'General';\n\nreturn [{\n  json: {\n    file_id: largest.file_id,\n    chat_id: chatId,\n    course_name: courseName\n  }\n}];"
+      },
+      "id": "b1111111-1111-1111-1111-111111111106",
+      "name": "Extract Photo Info",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://api.telegram.org/bot' + $credentials.telegramApi.accessToken + '/getFile?file_id=' + $json.file_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "telegramApi",
+        "options": {}
+      },
+      "id": "b1111111-1111-1111-1111-111111111107",
+      "name": "Get Telegram File Path",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json.result;\nconst filePath = result.file_path;\n\nconst chatId = $('Extract Photo Info').first().json.chat_id;\nconst courseName = $('Extract Photo Info').first().json.course_name;\n\nconst credentials = await this.getCredentials('telegramApi');\nconst token = credentials.accessToken;\n\nreturn [{\n  json: {\n    download_url: `https://api.telegram.org/file/bot${token}/${filePath}`,\n    chat_id: chatId,\n    course_name: courseName\n  }\n}];"
+      },
+      "id": "b1111111-1111-1111-1111-111111111108",
+      "name": "Build Download URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.download_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "photoData"
+            }
+          }
+        }
+      },
+      "id": "b1111111-1111-1111-1111-111111111109",
+      "name": "Download Photo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 400],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst chatId = $('Build Download URL').first().json.chat_id;\nconst courseName = $('Build Download URL').first().json.course_name;\nconst binaryData = item.binary?.photoData;\n\nif (!binaryData) throw new Error('Photo download failed — no binary data.');\n\nconst base64 = binaryData.data;\nconst mimeType = binaryData.mimeType || 'image/jpeg';\n\nreturn [{\n  json: {\n    chat_id: chatId,\n    course_name: courseName,\n    base64_image: base64,\n    mime_type: mimeType\n  }\n}];"
+      },
+      "id": "b1111111-1111-1111-1111-111111111110",
+      "name": "Rehydrate Context After Download",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const course = ($input.first().json.course_name || '').toLowerCase();\nconst chatId = $input.first().json.chat_id;\nconst base64 = $input.first().json.base64_image;\nconst mimeType = $input.first().json.mime_type;\n\nlet systemPrompt = '';\n\nif (/math|calculus|algebra|statistics|maths|trigonometry/.test(course)) {\n  systemPrompt = `You are a mathematics tutor for a Nigerian federal university computer engineering student. The student has photographed an assignment question. Read the question from the image carefully.\\n\\nProduce your response in this exact format:\\n\\n## QUESTION (as I understand it)\\nRestate the question in your own words to confirm you read it correctly.\\n\\n## FULL WORKED SOLUTION\\nSolve the problem completely. Show every single step. Explain what you are doing at each step and why. Do not skip steps.\\n\\n## KEY CONCEPTS USED\\nList the mathematical concepts, theorems, or formulas applied.\\n\\n## HOW TO WRITE THIS IN YOUR ANSWER BOOKLET\\nGive a clean, condensed version of the solution that the student can reproduce by hand in an exam. Use clear numbered steps. Estimated time to write: X minutes.`;\n} else if (/digital|electronics|logic|circuit|signals|electrical|electromagn/.test(course)) {\n  systemPrompt = `You are a digital electronics and computer engineering tutor for a Nigerian federal university student. The student has photographed an assignment question.\\n\\nProduce your response in this exact format:\\n\\n## QUESTION (as I understand it)\\nRestate the question clearly.\\n\\n## FULL WORKED SOLUTION\\nSolve completely. Truth tables: draw in ASCII format. K-maps: show groupings in text. Circuit descriptions: describe clearly as component list. Boolean expressions: show all simplification steps. Timing diagrams: represent as ASCII waveforms.\\n\\n## KEY CONCEPTS USED\\nState the relevant theorems, laws, or principles (e.g. De Morgan's theorem, Karnaugh map rules, etc.)\\n\\n## HOW TO WRITE THIS IN YOUR ANSWER BOOKLET\\nClean condensed version for hand-reproduction. Estimated time: X minutes.`;\n} else if (/programming|software|python|java|c\\+\\+|algorithm|data struct|compiler|coding/.test(course)) {\n  systemPrompt = `You are a programming and software engineering tutor for a Nigerian federal university computer engineering student.\\n\\nProduce your response in this exact format:\\n\\n## QUESTION (as I understand it)\\nRestate the question clearly.\\n\\n## FULL SOLUTION\\nIf code: write complete working code with comments explaining every line. If conceptual: give a thorough explanation with examples.\\n\\n## CODE WALKTHROUGH (if applicable)\\nExplain the code line by line in plain English.\\n\\n## HOW TO WRITE THIS IN YOUR ANSWER BOOKLET\\nClean version for hand-reproduction. For code, give a simplified but complete handwritten-friendly version.`;\n} else {\n  systemPrompt = `You are an academic tutor for a Nigerian federal university computer engineering student. The student has photographed an assignment question.\\n\\nProduce your response in this exact format:\\n\\n## QUESTION (as I understand it)\\nRestate the question clearly.\\n\\n## FULL ANSWER\\nProvide a thorough, well-structured answer appropriate for an undergraduate university assignment. Use clear paragraphs. Include all relevant theory, examples, and explanations. The answer should be at a level that would score full marks.\\n\\n## KEY POINTS TO REMEMBER\\nBullet list of the most important things in this answer.\\n\\n## HOW TO WRITE THIS IN YOUR ANSWER BOOKLET\\nA clean, condensed version the student can write by hand. Approximately 300-500 words depending on the question.`;\n}\n\nreturn [{\n  json: {\n    chat_id: chatId,\n    course_name: $input.first().json.course_name,\n    base64_image: base64,\n    mime_type: mimeType,\n    system_prompt: systemPrompt\n  }\n}];"
+      },
+      "id": "b1111111-1111-1111-1111-111111111111",
+      "name": "Select System Prompt Based on Course",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 400]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "⏳ Reading your question and generating a full answer...\nThis may take 20-30 seconds.",
+        "additionalFields": {}
+      },
+      "id": "b1111111-1111-1111-1111-111111111112",
+      "name": "Send Processing Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2000, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 6000, system: $('Select System Prompt Based on Course').first().json.system_prompt, messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: $('Select System Prompt Based on Course').first().json.mime_type, data: $('Select System Prompt Based on Course').first().json.base64_image } }, { type: 'text', text: 'This is my assignment question. Please solve it fully.' }] }] }) }}"
+      },
+      "id": "b1111111-1111-1111-1111-111111111113",
+      "name": "Call Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2220, 400],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2",
+          "name": "Anthropic API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst answerText = response.content[0].text;\nconst chatId = $('Select System Prompt Based on Course').first().json.chat_id;\nconst courseName = $('Select System Prompt Based on Course').first().json.course_name;\n\nconst chunkSize = 4000;\nconst chunks = [];\nfor (let i = 0; i < answerText.length; i += chunkSize) {\n  chunks.push(answerText.slice(i, i + chunkSize));\n}\n\nreturn chunks.map((chunk, i) => ({\n  json: {\n    text: chunk,\n    chat_id: chatId,\n    course_name: courseName,\n    chunk_index: i,\n    total_chunks: chunks.length,\n    full_answer: i === 0 ? answerText : null\n  }\n}));"
+      },
+      "id": "b1111111-1111-1111-1111-111111111114",
+      "name": "Parse and Split Claude Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2440, 400]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {}
+      },
+      "id": "b1111111-1111-1111-1111-111111111115",
+      "name": "Send Answer Chunks",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2660, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.chunk_index }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true
+      },
+      "id": "b1111111-1111-1111-1111-111111111116",
+      "name": "Filter First Chunk",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2880, 400]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "name": "={{ new Date().toISOString().slice(0,16).replace('T','_').replace(':','-') + '_' + ($json.course_name || 'General').replace(/\\s+/g,'_') + '_assignment.md' }}",
+        "driveId": {
+          "__rl": true,
+          "value": "myDrive",
+          "mode": "list",
+          "cachedResultName": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "STUDY_MATERIALS_FOLDER_ID",
+          "mode": "id"
+        },
+        "binaryData": false,
+        "fileContent": "={{ $json.full_answer }}",
+        "options": {
+          "mimeType": "text/plain"
+        }
+      },
+      "id": "b1111111-1111-1111-1111-111111111117",
+      "name": "Save to Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [3100, 400],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "3",
+          "name": "Google Drive OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Parse and Split Claude Response').first().json.chat_id }}",
+        "text": "✅ Full answer saved to Google Drive under \"Study Materials\". Good luck with your assignment! 📚",
+        "additionalFields": {}
+      },
+      "id": "b1111111-1111-1111-1111-111111111118",
+      "name": "Send Final Confirmation",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3320, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Build Download URL').first()?.json?.chat_id || $('Extract Photo Info').first()?.json?.chat_id || '' }}",
+        "text": "❌ Failed to process your question. Please make sure the photo is clear and well-lit, then try again.",
+        "additionalFields": {}
+      },
+      "id": "b1111111-1111-1111-1111-111111111119",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2220, 640],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Detect Message Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Message Type": {
+      "main": [
+        [
+          {
+            "node": "Save Course Name",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Photo Info",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unknown Input Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Course Name": {
+      "main": [
+        [
+          {
+            "node": "Confirm Course Set",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Photo Info": {
+      "main": [
+        [
+          {
+            "node": "Get Telegram File Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Telegram File Path": {
+      "main": [
+        [
+          {
+            "node": "Build Download URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Download URL": {
+      "main": [
+        [
+          {
+            "node": "Download Photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Photo": {
+      "main": [
+        [
+          {
+            "node": "Rehydrate Context After Download",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rehydrate Context After Download": {
+      "main": [
+        [
+          {
+            "node": "Select System Prompt Based on Course",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select System Prompt Based on Course": {
+      "main": [
+        [
+          {
+            "node": "Send Processing Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Processing Message": {
+      "main": [
+        [
+          {
+            "node": "Call Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Claude API": {
+      "main": [
+        [
+          {
+            "node": "Parse and Split Claude Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse and Split Claude Response": {
+      "main": [
+        [
+          {
+            "node": "Send Answer Chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Answer Chunks": {
+      "main": [
+        [
+          {
+            "node": "Filter First Chunk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter First Chunk": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Save to Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Send Final Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

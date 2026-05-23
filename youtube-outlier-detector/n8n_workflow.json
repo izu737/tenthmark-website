@@ -1,0 +1,525 @@
+{
+  "name": "YouTube Outlier Detector",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "11111111-0001-0001-0001-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "v001",
+              "name": "YOUTUBE_API_KEY",
+              "value": "YOUR_YOUTUBE_API_KEY_HERE",
+              "type": "string"
+            },
+            {
+              "id": "v002",
+              "name": "CLAUDE_API_KEY",
+              "value": "YOUR_CLAUDE_API_KEY_HERE",
+              "type": "string"
+            },
+            {
+              "id": "v003",
+              "name": "MY_CHANNEL_ID",
+              "value": "YOUR_CHANNEL_ID_HERE",
+              "type": "string"
+            },
+            {
+              "id": "v004",
+              "name": "TARGET_NICHES",
+              "value": "personal finance,investing,side hustle",
+              "type": "string"
+            },
+            {
+              "id": "v005",
+              "name": "GOOGLE_SHEET_ID",
+              "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+              "type": "string"
+            },
+            {
+              "id": "v006",
+              "name": "OUTLIER_THRESHOLD",
+              "value": 2,
+              "type": "number"
+            },
+            {
+              "id": "v007",
+              "name": "TRANSCRIPT_SCRIPT_PATH",
+              "value": "/opt/n8n/scripts/fetch_transcript.py",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "11111111-0002-0002-0002-000000000002",
+      "name": "Set Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&id={{ $json.MY_CHANNEL_ID }}&key={{ $json.YOUTUBE_API_KEY }}",
+        "options": {}
+      },
+      "id": "11111111-0003-0003-0003-000000000003",
+      "name": "Get My Channel Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Split TARGET_NICHES into one item per niche so the next HTTP node runs once per niche\nconst vars = $('Set Variables').first().json;\nconst niches = vars.TARGET_NICHES\n  .split(',')\n  .map(n => n.trim())\n  .filter(Boolean);\n\nreturn niches.map(niche => ({\n  json: {\n    niche,\n    YOUTUBE_API_KEY: vars.YOUTUBE_API_KEY,\n    CLAUDE_API_KEY: vars.CLAUDE_API_KEY,\n    MY_CHANNEL_ID: vars.MY_CHANNEL_ID,\n    GOOGLE_SHEET_ID: vars.GOOGLE_SHEET_ID,\n    OUTLIER_THRESHOLD: vars.OUTLIER_THRESHOLD,\n    TRANSCRIPT_SCRIPT_PATH: vars.TRANSCRIPT_SCRIPT_PATH\n  }\n}));"
+      },
+      "id": "11111111-0004-0004-0004-000000000004",
+      "name": "Create Niche Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [910, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://www.googleapis.com/youtube/v3/search?part=snippet&q={{ encodeURIComponent($json.niche) }}&type=channel&maxResults=10&key={{ $json.YOUTUBE_API_KEY }}",
+        "options": {}
+      },
+      "id": "11111111-0005-0005-0005-000000000005",
+      "name": "Search Channels by Niche",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1130, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge all niche search results, deduplicate by channelId, exclude my own channel\nconst vars = $('Set Variables').first().json;\nconst myChannelId = vars.MY_CHANNEL_ID;\nconst channelMap = new Map();\n\nfor (const item of $input.all()) {\n  const channels = item.json.items || [];\n  for (const ch of channels) {\n    const channelId = ch.id && ch.id.channelId;\n    if (channelId && channelId !== myChannelId && !channelMap.has(channelId)) {\n      channelMap.set(channelId, {\n        channelId,\n        channelTitle: ch.snippet && ch.snippet.title || 'Unknown',\n        channelThumbnail: ch.snippet && ch.snippet.thumbnails && ch.snippet.thumbnails.default && ch.snippet.thumbnails.default.url || '',\n        YOUTUBE_API_KEY: vars.YOUTUBE_API_KEY,\n        CLAUDE_API_KEY: vars.CLAUDE_API_KEY,\n        GOOGLE_SHEET_ID: vars.GOOGLE_SHEET_ID,\n        OUTLIER_THRESHOLD: vars.OUTLIER_THRESHOLD,\n        TRANSCRIPT_SCRIPT_PATH: vars.TRANSCRIPT_SCRIPT_PATH\n      });\n    }\n  }\n}\n\nreturn Array.from(channelMap.values()).map(ch => ({ json: ch }));"
+      },
+      "id": "11111111-0006-0006-0006-000000000006",
+      "name": "Deduplicate Channels",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1350, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://www.googleapis.com/youtube/v3/search?part=snippet&channelId={{ $json.channelId }}&maxResults=50&order=date&type=video&key={{ $json.YOUTUBE_API_KEY }}",
+        "options": {}
+      },
+      "id": "11111111-0007-0007-0007-000000000007",
+      "name": "Get Channel Videos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [250, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract video IDs from channel search results for the stats batch request\nconst vars = $('Set Variables').first().json;\nconst searchResult = $input.item.json;\nconst channelVideos = searchResult.items || [];\n\nconst videoIds = channelVideos\n  .map(v => v.id && v.id.videoId)\n  .filter(Boolean);\n\nif (videoIds.length === 0) {\n  return []; // skip channels with no public videos\n}\n\n// YouTube stats API accepts up to 50 IDs per request\nconst chunks = [];\nfor (let i = 0; i < videoIds.length; i += 50) {\n  chunks.push(videoIds.slice(i, i + 50).join(','));\n}\n\nreturn chunks.map(idChunk => ({\n  json: {\n    videoIds: idChunk,\n    YOUTUBE_API_KEY: vars.YOUTUBE_API_KEY,\n    CLAUDE_API_KEY: vars.CLAUDE_API_KEY,\n    GOOGLE_SHEET_ID: vars.GOOGLE_SHEET_ID,\n    OUTLIER_THRESHOLD: vars.OUTLIER_THRESHOLD,\n    TRANSCRIPT_SCRIPT_PATH: vars.TRANSCRIPT_SCRIPT_PATH\n  }\n}));"
+      },
+      "id": "11111111-0008-0008-0008-000000000008",
+      "name": "Extract Video IDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [470, 500]
+    },
+    {
+      "parameters": {
+        "url": "=https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id={{ $json.videoIds }}&key={{ $json.YOUTUBE_API_KEY }}",
+        "options": {}
+      },
+      "id": "11111111-0009-0009-0009-000000000009",
+      "name": "Get Video Statistics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [690, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Score each video: outlierScore = (views / channelAvg) * recencyBoost * contentBoost\nconst apiResponse = $input.item.json;\nconst videos = apiResponse.items || [];\nconst vars = $('Set Variables').first().json;\n\nif (videos.length === 0) return [];\n\n// Channel average views\nconst viewCounts = videos.map(v => parseInt((v.statistics && v.statistics.viewCount) || '0', 10));\nconst totalViews = viewCounts.reduce((a, b) => a + b, 0);\nconst avgViews = totalViews / videos.length;\n\nif (avgViews === 0) return [];\n\nconst MONEY_KEYWORDS   = ['money','earn','income','rich','profit','revenue','salary','pay','cash','wealth','financial','invest','stock','crypto','dollar','fund'];\nconst TIME_KEYWORDS    = ['fast','quick','minutes','days','hours','week','instantly','today','overnight','rapid','immediately'];\nconst CURIOSITY_KEYWORDS = ['secret','never','nobody','surprising','shocking','truth','exposed','untold','hidden','mistake','actually','really'];\n\nconst now = Date.now();\nconst DAY_MS = 86400000;\n\nconst results = [];\n\nfor (const video of videos) {\n  const views       = parseInt((video.statistics && video.statistics.viewCount) || '0', 10);\n  const publishedAt = (video.snippet && video.snippet.publishedAt) || new Date().toISOString();\n  const daysSince   = (now - new Date(publishedAt).getTime()) / DAY_MS;\n\n  // Recency boost\n  let recencyBoost = 1.0;\n  if      (daysSince <= 30) recencyBoost = 1.3;\n  else if (daysSince <= 60) recencyBoost = 1.2;\n  else if (daysSince <= 90) recencyBoost = 1.1;\n\n  // Content boost from title keywords\n  const titleLower = ((video.snippet && video.snippet.title) || '').toLowerCase();\n  let contentBoost = 1.0;\n  if (MONEY_KEYWORDS.some(k   => titleLower.includes(k))) contentBoost += 0.30;\n  if (TIME_KEYWORDS.some(k    => titleLower.includes(k))) contentBoost += 0.20;\n  if (CURIOSITY_KEYWORDS.some(k => titleLower.includes(k))) contentBoost += 0.15;\n\n  const baseScore    = views / avgViews;\n  const outlierScore = baseScore * recencyBoost * contentBoost;\n\n  const thumbnail = video.snippet && video.snippet.thumbnails\n    ? (video.snippet.thumbnails.maxres && video.snippet.thumbnails.maxres.url)\n      || (video.snippet.thumbnails.high && video.snippet.thumbnails.high.url)\n      || (video.snippet.thumbnails.default && video.snippet.thumbnails.default.url)\n      || ''\n    : '';\n\n  results.push({\n    json: {\n      videoId:           video.id,\n      videoTitle:        (video.snippet && video.snippet.title)       || '',\n      videoUrl:          `https://www.youtube.com/watch?v=${video.id}`,\n      thumbnailUrl:      thumbnail,\n      channelId:         (video.snippet && video.snippet.channelId)   || '',\n      channelTitle:      (video.snippet && video.snippet.channelTitle) || '',\n      publishedAt,\n      viewCount:         views,\n      likeCount:         parseInt((video.statistics && video.statistics.likeCount)    || '0', 10),\n      commentCount:      parseInt((video.statistics && video.statistics.commentCount) || '0', 10),\n      channelAvgViews:   Math.round(avgViews),\n      outlierScore:      Math.round(outlierScore * 100) / 100,\n      baseScore:         Math.round(baseScore * 100) / 100,\n      recencyBoost,\n      contentBoost:      Math.round(contentBoost * 100) / 100,\n      daysSincePublished: Math.round(daysSince),\n      CLAUDE_API_KEY:    vars.CLAUDE_API_KEY,\n      GOOGLE_SHEET_ID:   vars.GOOGLE_SHEET_ID,\n      OUTLIER_THRESHOLD: vars.OUTLIER_THRESHOLD,\n      TRANSCRIPT_SCRIPT_PATH: vars.TRANSCRIPT_SCRIPT_PATH\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "11111111-0010-0010-0010-000000000010",
+      "name": "Calculate Outlier Scores",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [910, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "f001",
+              "leftValue": "={{ $json.outlierScore }}",
+              "rightValue": "={{ $json.OUTLIER_THRESHOLD }}",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "11111111-0011-0011-0011-000000000011",
+      "name": "Filter High Scores",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [1130, 500]
+    },
+    {
+      "parameters": {
+        "type": "simple",
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "outlierScore",
+              "order": "descending"
+            }
+          ]
+        }
+      },
+      "id": "11111111-0012-0012-0012-000000000012",
+      "name": "Sort by Outlier Score",
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [1350, 500]
+    },
+    {
+      "parameters": {
+        "maxItems": 100,
+        "keep": "firstItems"
+      },
+      "id": "11111111-0013-0013-0013-000000000013",
+      "name": "Limit to Top 100",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [1570, 500]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "11111111-0014-0014-0014-000000000014",
+      "name": "Loop Over Outliers",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [250, 700]
+    },
+    {
+      "parameters": {
+        "command": "=python3 {{ $json.TRANSCRIPT_SCRIPT_PATH }} {{ $json.videoId }}"
+      },
+      "id": "11111111-0015-0015-0015-000000000015",
+      "name": "Fetch Transcript",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [470, 700]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse transcript stdout and build Claude API request body\nconst cmdOutput  = $input.item.json;\nconst videoData  = $('Loop Over Outliers').item.json;\nconst claudeKey  = videoData.CLAUDE_API_KEY;\n\nlet transcriptText = 'No transcript available for this video.';\ntry {\n  const parsed = JSON.parse(cmdOutput.stdout || '{}');\n  if (parsed.success && parsed.transcript) {\n    transcriptText = parsed.transcript;\n  } else {\n    transcriptText = 'Transcript unavailable: ' + (parsed.error || 'unknown error');\n  }\n} catch (e) {\n  transcriptText = 'Error reading transcript output.';\n}\n\n// Keep within Claude context limits\nif (transcriptText.length > 15000) {\n  transcriptText = transcriptText.substring(0, 15000) + ' [truncated]';\n}\n\nconst prompt = `You are a YouTube content strategist helping a creator identify winning video topics.\n\nHere is a high-performing outlier video from a competitor channel:\n\nTitle: \"${videoData.videoTitle}\"\nChannel: ${videoData.channelTitle}\nViews: ${videoData.viewCount.toLocaleString()} (${videoData.outlierScore}x the channel average)\nPublished: ${videoData.publishedAt.split('T')[0]}\n\nTranscript:\n${transcriptText}\n\nProvide your analysis in EXACTLY this format — no extra text:\n\nSUMMARY: [2–3 sentences describing the main topic and the single most valuable insight from this video]\n\nALT TITLES:\n1. [Compelling title adapted for a new/growing channel, same core hook]\n2. [Alternative angle on the same topic]\n3. [Curiosity-gap or number-based variant]`;\n\nconst requestBody = {\n  model: 'claude-opus-4-7',\n  max_tokens: 512,\n  messages: [\n    { role: 'user', content: prompt }\n  ]\n};\n\nreturn [{\n  json: {\n    ...videoData,\n    transcriptText,\n    transcriptAvailable: !transcriptText.startsWith('Transcript unavailable') && !transcriptText.startsWith('No transcript'),\n    claudeKey,\n    claudeRequestBody: JSON.stringify(requestBody)\n  }\n}];"
+      },
+      "id": "11111111-0016-0016-0016-000000000016",
+      "name": "Prepare Claude Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [690, 700]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $json.claudeKey }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.claudeRequestBody }}",
+        "options": {}
+      },
+      "id": "11111111-0017-0017-0017-000000000017",
+      "name": "Analyze with Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [910, 700]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract summary and 3 alt titles from Claude's structured response\nconst apiResponse  = $input.item.json;\nconst videoData    = $('Prepare Claude Request').item.json;\n\nlet summary   = '';\nlet altTitles = ['', '', ''];\n\ntry {\n  const text = (apiResponse.content && apiResponse.content[0] && apiResponse.content[0].text) || '';\n\n  const summaryMatch = text.match(/SUMMARY:\\s*([\\s\\S]*?)(?=ALT TITLES:|$)/i);\n  if (summaryMatch) summary = summaryMatch[1].trim();\n\n  const titlesMatch = text.match(/ALT TITLES:\\s*([\\s\\S]*?)$/i);\n  if (titlesMatch) {\n    const lines = titlesMatch[1]\n      .split('\\n')\n      .map(l => l.replace(/^\\d+\\.\\s*/, '').replace(/^[-*•]\\s*/, '').trim())\n      .filter(l => l.length > 0);\n    altTitles = [lines[0] || '', lines[1] || '', lines[2] || ''];\n  }\n} catch (e) {\n  summary = 'Error parsing AI response';\n}\n\nreturn [{\n  json: {\n    timestamp:         new Date().toISOString(),\n    videoTitle:        videoData.videoTitle,\n    videoUrl:          videoData.videoUrl,\n    thumbnailUrl:      videoData.thumbnailUrl,\n    channelName:       videoData.channelTitle,\n    channelId:         videoData.channelId,\n    publishedAt:       videoData.publishedAt,\n    viewCount:         videoData.viewCount,\n    likeCount:         videoData.likeCount,\n    commentCount:      videoData.commentCount,\n    channelAvgViews:   videoData.channelAvgViews,\n    outlierScore:      videoData.outlierScore,\n    baseScore:         videoData.baseScore,\n    recencyBoost:      videoData.recencyBoost,\n    contentBoost:      videoData.contentBoost,\n    daysSincePublished: videoData.daysSincePublished,\n    transcriptAvailable: videoData.transcriptAvailable,\n    summary,\n    altTitle1: altTitles[0],\n    altTitle2: altTitles[1],\n    altTitle3: altTitles[2],\n    GOOGLE_SHEET_ID:   videoData.GOOGLE_SHEET_ID\n  }\n}];"
+      },
+      "id": "11111111-0018-0018-0018-000000000018",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1130, 700]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.GOOGLE_SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "YouTube Outliers",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp":             "={{ $json.timestamp }}",
+            "Video Title":           "={{ $json.videoTitle }}",
+            "Video URL":             "={{ $json.videoUrl }}",
+            "Thumbnail URL":         "={{ $json.thumbnailUrl }}",
+            "Channel Name":          "={{ $json.channelName }}",
+            "Channel ID":            "={{ $json.channelId }}",
+            "Published Date":        "={{ $json.publishedAt }}",
+            "View Count":            "={{ $json.viewCount }}",
+            "Like Count":            "={{ $json.likeCount }}",
+            "Comment Count":         "={{ $json.commentCount }}",
+            "Channel Avg Views":     "={{ $json.channelAvgViews }}",
+            "Outlier Score":         "={{ $json.outlierScore }}",
+            "Base Score":            "={{ $json.baseScore }}",
+            "Recency Boost":         "={{ $json.recencyBoost }}",
+            "Content Boost":         "={{ $json.contentBoost }}",
+            "Days Since Published":  "={{ $json.daysSincePublished }}",
+            "Transcript Available":  "={{ $json.transcriptAvailable }}",
+            "Summary":               "={{ $json.summary }}",
+            "Alt Title 1":           "={{ $json.altTitle1 }}",
+            "Alt Title 2":           "={{ $json.altTitle2 }}",
+            "Alt Title 3":           "={{ $json.altTitle3 }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "id": "11111111-0019-0019-0019-000000000019",
+      "name": "Append to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1350, 700]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s001",
+              "name": "status",
+              "value": "Workflow complete",
+              "type": "string"
+            },
+            {
+              "id": "s002",
+              "name": "message",
+              "value": "All outlier videos have been analyzed and written to Google Sheets.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "11111111-0020-0020-0020-000000000020",
+      "name": "Return Summary",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1570, 700]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          { "node": "Set Variables", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Set Variables": {
+      "main": [
+        [
+          { "node": "Get My Channel Stats", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get My Channel Stats": {
+      "main": [
+        [
+          { "node": "Create Niche Items", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Create Niche Items": {
+      "main": [
+        [
+          { "node": "Search Channels by Niche", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Search Channels by Niche": {
+      "main": [
+        [
+          { "node": "Deduplicate Channels", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Deduplicate Channels": {
+      "main": [
+        [
+          { "node": "Get Channel Videos", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get Channel Videos": {
+      "main": [
+        [
+          { "node": "Extract Video IDs", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Extract Video IDs": {
+      "main": [
+        [
+          { "node": "Get Video Statistics", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get Video Statistics": {
+      "main": [
+        [
+          { "node": "Calculate Outlier Scores", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Calculate Outlier Scores": {
+      "main": [
+        [
+          { "node": "Filter High Scores", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Filter High Scores": {
+      "main": [
+        [
+          { "node": "Sort by Outlier Score", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Sort by Outlier Score": {
+      "main": [
+        [
+          { "node": "Limit to Top 100", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Limit to Top 100": {
+      "main": [
+        [
+          { "node": "Loop Over Outliers", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Loop Over Outliers": {
+      "main": [
+        [
+          { "node": "Fetch Transcript", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Return Summary", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Fetch Transcript": {
+      "main": [
+        [
+          { "node": "Prepare Claude Request", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Prepare Claude Request": {
+      "main": [
+        [
+          { "node": "Analyze with Claude", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Analyze with Claude": {
+      "main": [
+        [
+          { "node": "Parse AI Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          { "node": "Append to Google Sheets", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Append to Google Sheets": {
+      "main": [
+        [
+          { "node": "Loop Over Outliers", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f1e2d3c4-b5a6-7890-abcd-ef1234567890",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "00000000-0000-0000-0000-000000000000"
+  },
+  "id": "youtube-outlier-detector-v1",
+  "tags": [
+    {
+      "createdAt": "2025-05-23T00:00:00.000Z",
+      "updatedAt": "2025-05-23T00:00:00.000Z",
+      "id": "yt-outlier",
+      "name": "YouTube"
+    }
+  ]
+}

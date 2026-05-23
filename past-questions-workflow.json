@@ -1,0 +1,627 @@
+{
+  "name": "Past Questions Exam Prep Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "id": "e1111111-1111-1111-1111-111111111101",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 500],
+      "webhookId": "past-questions-webhook-v1",
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "rules": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ ($json.message.caption && $json.message.caption.toUpperCase().startsWith('PQ:')) && ($json.message.photo !== undefined || $json.message.document !== undefined) }}",
+                    "rightValue": true,
+                    "operator": { "type": "boolean", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "pq_file"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.text && $json.message.text.toUpperCase().startsWith('ANSWER:') }}",
+                    "rightValue": true,
+                    "operator": { "type": "boolean", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "answer_request"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.text && ($json.message.text.toUpperCase() === 'SIMULATE' || $json.message.text.toUpperCase() === 'SIM') }}",
+                    "rightValue": true,
+                    "operator": { "type": "boolean", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "simulate"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.text && $json.message.text.toUpperCase().trim() === 'DONE' }}",
+                    "rightValue": true,
+                    "operator": { "type": "boolean", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "done"
+            }
+          ]
+        },
+        "fallbackOutput": "extra"
+      },
+      "id": "e1111111-1111-1111-1111-111111111102",
+      "name": "Route Incoming Message",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [450, 500]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "Here's what I can do with past questions:\n\n📎 Send a past question PDF or photo with caption:\nPQ: [Course Name] [Year]\nExample: PQ: Digital Electronics 2022\n\n📩 After I process it, reply:\nANSWER: 3  (to get model answer for question 3)\n\n⏱ Or reply:\nSIMULATE  (to run a timed exam simulation)",
+        "additionalFields": {}
+      },
+      "id": "e1111111-1111-1111-1111-111111111103",
+      "name": "Send Help Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [700, 800],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = $input.first().json.message;\nconst caption = msg.caption || '';\nconst chatId = msg.chat.id;\n\nconst pqMatch = caption.match(/^PQ:\\s*(.+)/i);\nconst fullLabel = pqMatch ? pqMatch[1].trim() : 'Unknown Course';\n\nconst yearMatch = fullLabel.match(/(\\d{4})/);\nconst year = yearMatch ? yearMatch[1] : 'Unknown Year';\nconst courseName = fullLabel.replace(/\\d{4}/, '').trim();\n\nlet fileId, fileType;\nif (msg.photo) {\n  const photos = msg.photo;\n  fileId = photos[photos.length - 1].file_id;\n  fileType = 'image';\n} else if (msg.document) {\n  fileId = msg.document.file_id;\n  fileType = msg.document.mime_type === 'application/pdf' ? 'pdf' : 'image';\n}\n\nreturn [{\n  json: {\n    chat_id: chatId,\n    course_name: courseName,\n    year: year,\n    full_label: fullLabel,\n    file_id: fileId,\n    file_type: fileType\n  }\n}];"
+      },
+      "id": "e1111111-1111-1111-1111-111111111104",
+      "name": "Extract Caption and File Info",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 500]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "⏳ Got it! Processing past questions for:\n📚 Course: {{ $json.course_name }}\n📅 Year: {{ $json.year }}\n\nExtracting all questions and generating model answers...\nThis takes about 30-60 seconds. Hang tight.",
+        "additionalFields": {}
+      },
+      "id": "e1111111-1111-1111-1111-111111111105",
+      "name": "Acknowledge Receipt",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [950, 500],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://api.telegram.org/bot' + $credentials.telegramApi.accessToken + '/getFile?file_id=' + $json.file_id }}",
+        "options": {}
+      },
+      "id": "e1111111-1111-1111-1111-111111111106",
+      "name": "Get Telegram File Path",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 500],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const filePath = $input.first().json.result.file_path;\nconst prev = $('Extract Caption and File Info').first().json;\nconst credentials = await this.getCredentials('telegramApi');\nconst token = credentials.accessToken;\n\nreturn [{\n  json: {\n    ...prev,\n    download_url: `https://api.telegram.org/file/bot${token}/${filePath}`\n  }\n}];"
+      },
+      "id": "e1111111-1111-1111-1111-111111111107",
+      "name": "Build Download URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 500]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.download_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "pqFile"
+            }
+          }
+        }
+      },
+      "id": "e1111111-1111-1111-1111-111111111108",
+      "name": "Download PQ File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1700, 500],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst prev = $('Build Download URL').first().json;\nconst binary = item.binary?.pqFile;\n\nif (!binary) throw new Error('File download failed — no binary data.');\n\nconst base64 = binary.data;\nconst mimeType = binary.mimeType || 'image/jpeg';\nconst fileType = prev.file_type;\n\nlet contentBlock;\nif (fileType === 'pdf') {\n  contentBlock = {\n    type: 'document',\n    source: { type: 'base64', media_type: 'application/pdf', data: base64 }\n  };\n} else {\n  const imgMime = mimeType.startsWith('image/') ? mimeType : 'image/jpeg';\n  contentBlock = {\n    type: 'image',\n    source: { type: 'base64', media_type: imgMime, data: base64 }\n  };\n}\n\nreturn [{\n  json: {\n    ...prev,\n    content_block: contentBlock\n  }\n}];"
+      },
+      "id": "e1111111-1111-1111-1111-111111111109",
+      "name": "Prepare File for Claude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1950, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "const prev = $input.first().json;\nconst course = prev.course_name;\nconst year = prev.year;\nconst contentBlock = prev.content_block;\n\nconst sysLines = [\n  'You are an exam preparation assistant for a Nigerian federal university computer engineering student. You will receive an image or PDF of a past exam question paper.',\n  '',\n  'Your job is to return a single JSON object and nothing else — no markdown, no explanation, no code fences, just raw JSON.',\n  '',\n  'The JSON must have this exact structure:',\n  '{',\n  '  \"course\": \"course name as you can determine it\",',\n  '  \"pattern_analysis\": \"A paragraph analysing which topics appear most frequently, which question types dominate (calculation vs theory vs diagram), and which 3-5 topics the student should prioritise based on this paper alone.\",',\n  '  \"priority_topics\": [\"topic1\", \"topic2\", \"topic3\"],',\n  '  \"total_questions\": 10,',\n  '  \"questions\": [',\n  '    {',\n  '      \"number\": 1,',\n  '      \"question_text\": \"Full question text exactly as it appears\",',\n  '      \"topic\": \"topic this question covers\",',\n  '      \"marks\": \"marks allocated if visible, else null\",',\n  '      \"question_type\": \"calculation OR theory OR diagram OR definition\",',\n  '      \"model_answer\": \"A complete model answer that would score full marks in this exam. Be thorough. Show all working for calculations. Give full explanations for theory. This answer must be good enough to copy into an answer booklet and receive full marks.\",',\n  '      \"key_points\": [\"key point 1\", \"key point 2\", \"key point 3\"],',\n  '      \"time_to_answer_minutes\": 5',\n  '    }',\n  '  ]',\n  '}'\n];\nconst systemPrompt = sysLines.join('\\n');\n\nconst requestBody = JSON.stringify({\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 8000,\n  system: systemPrompt,\n  messages: [{\n    role: 'user',\n    content: [\n      contentBlock,\n      {\n        type: 'text',\n        text: 'This is a past exam question paper for ' + course + ' (' + year + '). Extract every question and generate complete model answers. Return only the JSON.'\n      }\n    ]\n  }]\n});\n\nreturn [{ json: { ...prev, request_body: requestBody } }];"
+      },
+      "id": "e1111111-1111-1111-1111-111111111110",
+      "name": "Build Claude Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2200, 500]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.request_body }}"
+      },
+      "id": "e1111111-1111-1111-1111-111111111111",
+      "name": "Send to Claude for Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2450, 500],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst rawText = (response.content || [])[0]?.text || '';\nconst prev = $('Prepare File for Claude').first().json;\n\nlet pqData;\ntry {\n  const cleaned = rawText\n    .replace(/^```json\\s*/i, '')\n    .replace(/^```\\s*/i, '')\n    .replace(/```\\s*$/i, '')\n    .trim();\n  pqData = JSON.parse(cleaned);\n} catch(e) {\n  throw new Error('Claude did not return valid JSON: ' + rawText.slice(0, 300));\n}\n\nconst totalQ = pqData.questions.length;\nconst estimatedTotal = pqData.questions.reduce(\n  (sum, q) => sum + (q.time_to_answer_minutes || 5), 0\n);\n\nlet summaryMsg = '\\u2705 *Past Questions Processed!*\\n';\nsummaryMsg += '\\uD83D\\uDCDA ' + pqData.course + ' \\u2014 ' + prev.year + '\\n';\nsummaryMsg += '\\uD83D\\uDCDD ' + totalQ + ' questions found\\n';\nsummaryMsg += '\\u23F1 Estimated exam time: ' + estimatedTotal + ' mins\\n\\n';\nsummaryMsg += '\\uD83C\\uDFAF *PATTERN ANALYSIS*\\n';\nsummaryMsg += pqData.pattern_analysis + '\\n\\n';\nsummaryMsg += '\\uD83D\\uDD25 *PRIORITY TOPICS*\\n';\npqData.priority_topics.forEach((t, i) => {\n  summaryMsg += (i + 1) + '. ' + t + '\\n';\n});\nsummaryMsg += '\\n\\uD83D\\uDCCB *ALL QUESTIONS:*\\n';\npqData.questions.forEach(q => {\n  const marks = q.marks ? ' [' + q.marks + ' marks]' : '';\n  summaryMsg += 'Q' + q.number + '. ' + q.question_text.slice(0, 80) + '...' + marks + '\\n';\n});\nsummaryMsg += '\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n';\nsummaryMsg += 'Reply *ANSWER: N* to get the full model answer for question N\\n';\nsummaryMsg += 'Reply *SIMULATE* to run a timed exam simulation';\n\nlet driveContent = '# ' + pqData.course + ' \\u2014 Past Questions ' + prev.year + '\\n\\n';\ndriveContent += '## Pattern Analysis\\n' + pqData.pattern_analysis + '\\n\\n';\ndriveContent += '## Priority Topics\\n';\npqData.priority_topics.forEach((t, i) => { driveContent += (i + 1) + '. ' + t + '\\n'; });\ndriveContent += '\\n---\\n\\n';\npqData.questions.forEach(q => {\n  driveContent += '## Q' + q.number + '. ' + q.question_text + '\\n\\n';\n  driveContent += '**Topic:** ' + q.topic + ' | **Type:** ' + q.question_type;\n  if (q.marks) driveContent += ' | **Marks:** ' + q.marks;\n  driveContent += '\\n\\n### Model Answer\\n' + q.model_answer + '\\n\\n';\n  driveContent += '### Key Points\\n';\n  q.key_points.forEach(kp => { driveContent += '- ' + kp + '\\n'; });\n  driveContent += '\\n---\\n\\n';\n});\n\nconst staticData = $getWorkflowStaticData('global');\nstaticData['pq_' + prev.chat_id] = JSON.stringify(pqData);\nstaticData['pq_course_' + prev.chat_id] = pqData.course;\nstaticData['pq_year_' + prev.chat_id] = prev.year;\n\nreturn [{\n  json: {\n    chat_id: prev.chat_id,\n    course_name: pqData.course,\n    year: prev.year,\n    summary_message: summaryMsg,\n    drive_content: driveContent,\n    total_questions: totalQ,\n    pq_data: JSON.stringify(pqData)\n  }\n}];"
+      },
+      "id": "e1111111-1111-1111-1111-111111111112",
+      "name": "Parse Claude Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2700, 500]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.summary_message }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "e1111111-1111-1111-1111-111111111113",
+      "name": "Send Summary to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2950, 500],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "name": "={{ $json.course_name.replace(/\\s+/g, '_') + '_' + $json.year + '_PQ.md' }}",
+        "driveId": {
+          "__rl": true,
+          "value": "myDrive",
+          "mode": "list",
+          "cachedResultName": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "PAST_QUESTIONS_FOLDER_ID",
+          "mode": "id"
+        },
+        "binaryData": false,
+        "fileContent": "={{ $json.drive_content }}",
+        "options": {
+          "mimeType": "text/plain"
+        }
+      },
+      "id": "e1111111-1111-1111-1111-111111111114",
+      "name": "Save to Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [3200, 500],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "3",
+          "name": "Google Drive OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Build Download URL').first().json.chat_id }}",
+        "text": "❌ Failed to download or process the file. Please try again, or send the file in a different format.",
+        "additionalFields": {}
+      },
+      "id": "e1111111-1111-1111-1111-111111111114b",
+      "name": "Download Error Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1950, 700],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.message.text;\nconst chatId = $input.first().json.message.chat.id;\n\nconst match = text.match(/ANSWER:\\s*(\\d+)/i);\nif (!match) {\n  return [{\n    json: {\n      chat_id: chatId,\n      error: true,\n      error_msg: 'Please specify a question number. Example: ANSWER: 3'\n    }\n  }];\n}\n\nconst questionNumber = parseInt(match[1]);\n\nconst staticData = $getWorkflowStaticData('global');\nconst pqRaw = staticData['pq_' + chatId];\n\nif (!pqRaw) {\n  return [{\n    json: {\n      chat_id: chatId,\n      error: true,\n      error_msg: 'No past questions loaded yet. Please send a past question paper first with the caption: PQ: [Course Name]'\n    }\n  }];\n}\n\nconst pqData = JSON.parse(pqRaw);\nconst question = pqData.questions.find(q => q.number === questionNumber);\n\nif (!question) {\n  return [{\n    json: {\n      chat_id: chatId,\n      error: true,\n      error_msg: 'Question ' + questionNumber + ' not found. This paper has ' + pqData.questions.length + ' questions.'\n    }\n  }];\n}\n\nlet answerMsg = '\\uD83D\\uDCCC *Q' + question.number + ': ' + question.question_text + '*\\n\\n';\nanswerMsg += '\\uD83C\\uDFF7 Topic: ' + question.topic + '\\n';\nif (question.marks) answerMsg += '\\u2B50 Marks: ' + question.marks + '\\n';\nanswerMsg += '\\u23F1 Est. time: ' + question.time_to_answer_minutes + ' mins\\n\\n';\nanswerMsg += '\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n\\n';\nanswerMsg += '\\u2705 *MODEL ANSWER:*\\n\\n' + question.model_answer + '\\n\\n';\nanswerMsg += '\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n\\n';\nanswerMsg += '\\uD83D\\uDD11 *Key Points to Hit:*\\n';\nquestion.key_points.forEach(kp => { answerMsg += '\\u2022 ' + kp + '\\n'; });\n\nreturn [{\n  json: {\n    chat_id: chatId,\n    error: false,\n    answer_message: answerMsg,\n    total_questions: pqData.questions.length,\n    question_number: questionNumber\n  }\n}];"
+      },
+      "id": "e1111111-1111-1111-1111-111111111115",
+      "name": "Parse Answer Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "b2-error-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true
+      },
+      "id": "e1111111-1111-1111-1111-111111111116",
+      "name": "Check Answer Request Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [950, 200]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.error_msg }}",
+        "additionalFields": {}
+      },
+      "id": "e1111111-1111-1111-1111-111111111117",
+      "name": "Send Answer Error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1200, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const answerText = $input.first().json.answer_message;\nconst chatId = $input.first().json.chat_id;\nconst chunkSize = 4000;\nconst chunks = [];\nfor (let i = 0; i < answerText.length; i += chunkSize) {\n  chunks.push(answerText.slice(i, i + chunkSize));\n}\nreturn chunks.map((chunk, i) => ({\n  json: { text: chunk, chat_id: chatId, chunk_index: i }\n}));"
+      },
+      "id": "e1111111-1111-1111-1111-111111111118",
+      "name": "Split Answer into Chunks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 200]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "e1111111-1111-1111-1111-111111111119",
+      "name": "Send Answer Chunk",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1450, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const chatId = $input.first().json.message.chat.id;\nconst staticData = $getWorkflowStaticData('global');\nconst pqRaw = staticData['pq_' + chatId];\n\nif (!pqRaw) {\n  return [{\n    json: {\n      chat_id: chatId,\n      error: true,\n      error_msg: 'No past questions loaded. Send a past question paper first: PQ: [Course Name]'\n    }\n  }];\n}\n\nconst pqData = JSON.parse(pqRaw);\nconst totalTime = pqData.questions.reduce(\n  (s, q) => s + (q.time_to_answer_minutes || 5), 0\n);\n\nlet simMsg = '\\u23F1 *EXAM SIMULATION \\u2014 ' + pqData.course + '*\\n\\n';\nsimMsg += 'Total questions: ' + pqData.questions.length + '\\n';\nsimMsg += 'Estimated time: ' + totalTime + ' minutes\\n\\n';\nsimMsg += '\\uD83D\\uDEA8 *Rules:*\\n';\nsimMsg += '\\u2022 Answer on paper, not on your phone\\n';\nsimMsg += '\\u2022 Do not scroll up to check notes\\n';\nsimMsg += '\\u2022 Time yourself\\n\\n';\nsimMsg += '\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n\\n';\n\npqData.questions.forEach(q => {\n  const marks = q.marks ? ' (' + q.marks + ' marks)' : '';\n  simMsg += '*' + q.number + '.* ' + q.question_text + marks + '\\n\\n';\n});\n\nsimMsg += '\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n';\nsimMsg += 'Start your timer NOW. \\u23F1\\n';\nsimMsg += 'When done, reply: *DONE*\\n';\nsimMsg += '(I will send all model answers immediately)';\n\nstaticData['sim_active_' + chatId] = 'true';\nstaticData['sim_pq_' + chatId] = pqRaw;\n\nreturn [{\n  json: {\n    chat_id: chatId,\n    error: false,\n    sim_message: simMsg,\n    pq_data: pqRaw\n  }\n}];"
+      },
+      "id": "e1111111-1111-1111-1111-111111111120",
+      "name": "Load PQ Data for Simulation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, -100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "c2-error-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true
+      },
+      "id": "e1111111-1111-1111-1111-111111111121",
+      "name": "Check Simulation Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [950, -100]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.error_msg }}",
+        "additionalFields": {}
+      },
+      "id": "e1111111-1111-1111-1111-111111111122",
+      "name": "Send Simulation Error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1200, 100],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.sim_message }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "e1111111-1111-1111-1111-111111111123",
+      "name": "Send Simulation Paper",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1200, -100],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const chatId = $input.first().json.message.chat.id;\nconst staticData = $getWorkflowStaticData('global');\nconst pqRaw = staticData['sim_pq_' + chatId] || staticData['pq_' + chatId];\n\nif (!pqRaw) {\n  return [{\n    json: {\n      chat_id: chatId,\n      text: 'No active simulation found. Start with SIMULATE first.',\n      chunk_index: 0,\n      is_last: true\n    }\n  }];\n}\n\nconst pqData = JSON.parse(pqRaw);\n\nlet allAnswers = '\\u2705 *MODEL ANSWERS \\u2014 ' + pqData.course + '*\\n\\n';\nallAnswers += '\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n\\n';\n\npqData.questions.forEach(q => {\n  allAnswers += '*Q' + q.number + '. ' + q.question_text + '*\\n\\n';\n  allAnswers += '\\uD83D\\uDCCC ' + q.model_answer + '\\n\\n';\n  allAnswers += '\\uD83D\\uDD11 *Key points:* ' + q.key_points.join(' | ') + '\\n\\n';\n  allAnswers += '\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n\\n';\n});\n\nconst chunkSize = 4000;\nconst chunks = [];\nfor (let i = 0; i < allAnswers.length; i += chunkSize) {\n  chunks.push(allAnswers.slice(i, i + chunkSize));\n}\n\nreturn chunks.map((chunk, i) => ({\n  json: {\n    chat_id: chatId,\n    text: chunk,\n    chunk_index: i,\n    is_last: i === chunks.length - 1\n  }\n}));"
+      },
+      "id": "e1111111-1111-1111-1111-111111111124",
+      "name": "Load Answers for Done",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, -400]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "e1111111-1111-1111-1111-111111111125",
+      "name": "Send All Answers",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [950, -400],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [{ "node": "Route Incoming Message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Route Incoming Message": {
+      "main": [
+        [{ "node": "Extract Caption and File Info", "type": "main", "index": 0 }],
+        [{ "node": "Parse Answer Request", "type": "main", "index": 0 }],
+        [{ "node": "Load PQ Data for Simulation", "type": "main", "index": 0 }],
+        [{ "node": "Load Answers for Done", "type": "main", "index": 0 }],
+        [{ "node": "Send Help Message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extract Caption and File Info": {
+      "main": [
+        [{ "node": "Acknowledge Receipt", "type": "main", "index": 0 }]
+      ]
+    },
+    "Acknowledge Receipt": {
+      "main": [
+        [{ "node": "Get Telegram File Path", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Telegram File Path": {
+      "main": [
+        [{ "node": "Build Download URL", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Download URL": {
+      "main": [
+        [{ "node": "Download PQ File", "type": "main", "index": 0 }]
+      ]
+    },
+    "Download PQ File": {
+      "main": [
+        [{ "node": "Prepare File for Claude", "type": "main", "index": 0 }],
+        [{ "node": "Download Error Message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Prepare File for Claude": {
+      "main": [
+        [{ "node": "Build Claude Request", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Claude Request": {
+      "main": [
+        [{ "node": "Send to Claude for Analysis", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send to Claude for Analysis": {
+      "main": [
+        [{ "node": "Parse Claude Response", "type": "main", "index": 0 }],
+        [{ "node": "Send Help Message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Claude Response": {
+      "main": [
+        [{ "node": "Send Summary to Telegram", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Summary to Telegram": {
+      "main": [
+        [{ "node": "Save to Google Drive", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Answer Request": {
+      "main": [
+        [{ "node": "Check Answer Request Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check Answer Request Error": {
+      "main": [
+        [{ "node": "Send Answer Error", "type": "main", "index": 0 }],
+        [{ "node": "Split Answer into Chunks", "type": "main", "index": 0 }]
+      ]
+    },
+    "Split Answer into Chunks": {
+      "main": [
+        [{ "node": "Send Answer Chunk", "type": "main", "index": 0 }]
+      ]
+    },
+    "Load PQ Data for Simulation": {
+      "main": [
+        [{ "node": "Check Simulation Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check Simulation Error": {
+      "main": [
+        [{ "node": "Send Simulation Error", "type": "main", "index": 0 }],
+        [{ "node": "Send Simulation Paper", "type": "main", "index": 0 }]
+      ]
+    },
+    "Load Answers for Done": {
+      "main": [
+        [{ "node": "Send All Answers", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

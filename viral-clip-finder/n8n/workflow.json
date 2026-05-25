@@ -1,0 +1,532 @@
+{
+  "name": "AI Viral Clip Finder & Generator",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "node_01",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [100, 300],
+      "notes": "Group 1 – Video Ingestion"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {"name": "VIDEO_PATH", "value": "/data/input/video.mp4"},
+            {"name": "OUTPUT_DIR", "value": "/data/output"},
+            {"name": "CHANNEL_NAME", "value": "Watch Full Video"},
+            {"name": "MUSIC_PATH", "value": ""},
+            {"name": "LANGUAGE", "value": "en"},
+            {"name": "TOP_CLIPS", "value": "7"},
+            {"name": "MIN_DURATION", "value": "25"},
+            {"name": "MAX_DURATION", "value": "95"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_02",
+      "name": "Set Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "command": "ffprobe -v error -show_entries format=duration,size:stream=width,height,r_frame_rate,codec_name -of json \"{{ $json.VIDEO_PATH }}\" 2>&1"
+      },
+      "id": "node_03",
+      "name": "Validate Video & Get Metadata",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "command": "ffmpeg -y -i \"{{ $('Set Variables').item.json.VIDEO_PATH }}\" -vn -ar 16000 -ac 1 -f wav \"{{ $('Set Variables').item.json.OUTPUT_DIR }}/audio.wav\" 2>&1 && echo 'DONE'"
+      },
+      "id": "node_04",
+      "name": "Extract Audio",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [700, 300],
+      "notes": "Group 2 – Transcript & Analysis"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/audio/transcriptions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Authorization", "value": "Bearer {{ $env.OPENAI_API_KEY }}"}
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {"name": "model", "value": "whisper-1"},
+            {"name": "response_format", "value": "verbose_json"},
+            {"name": "timestamp_granularities[]", "value": "segment"},
+            {"name": "language", "value": "{{ $('Set Variables').item.json.LANGUAGE }}"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_05",
+      "name": "Whisper Transcription API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst segments = data.segments || [];\nconst MIN_DUR = parseFloat($('Set Variables').first().json.MIN_DURATION);\nconst MAX_DUR = parseFloat($('Set Variables').first().json.MAX_DURATION);\n\n// Build sliding window segments (30-90s) from Whisper word-level timestamps\nconst clips = [];\nlet i = 0;\nwhile (i < segments.length) {\n  let start = segments[i].start;\n  let end = start;\n  let text = '';\n  let j = i;\n  while (j < segments.length && (segments[j].end - start) < MAX_DUR) {\n    end = segments[j].end;\n    text += ' ' + segments[j].text;\n    j++;\n  }\n  const duration = end - start;\n  if (duration >= MIN_DUR) {\n    clips.push({ start, end, duration: Math.round(duration), text: text.trim() });\n  }\n  i += Math.max(1, Math.floor((j - i) / 2)); // 50% overlap\n}\n\nreturn clips.map(c => ({ json: c }));"
+      },
+      "id": "node_06",
+      "name": "Parse Transcript into Segments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "options": {
+          "batchSize": 5,
+          "delay": 300
+        }
+      },
+      "id": "node_07",
+      "name": "Loop Segments",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "x-api-key", "value": "{{ $env.ANTHROPIC_API_KEY }}"},
+            {"name": "anthropic-version", "value": "2023-06-01"},
+            {"name": "content-type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-haiku-4-5-20251001\",\n  \"max_tokens\": 512,\n  \"system\": \"You are a viral content analyst. Respond only with valid JSON.\",\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Score this transcript segment (0-10 each): hook_strength, emotional_intensity, information_density, standalone_value, cta_potential, controversy, relatability, quotability. Also provide suggested_title (max 60 chars), hook_text (5-10 words), reason (1 sentence).\\n\\nSegment: {{ $json.text }}\\n\\nRespond ONLY with JSON: {hook_strength, emotional_intensity, information_density, standalone_value, cta_potential, controversy, relatability, quotability, suggested_title, hook_text, reason}\"\n  }]\n}",
+        "options": {}
+      },
+      "id": "node_08",
+      "name": "Claude Viral Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1500, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputItem = $input.first().json;\nconst segItem = $('Loop Segments').first().json;\n\nlet scores;\ntry {\n  const raw = inputItem.content[0].text;\n  const clean = raw.replace(/```json?/g, '').replace(/```/g, '').trim();\n  scores = JSON.parse(clean);\n} catch(e) {\n  scores = { hook_strength:0, emotional_intensity:0, information_density:0,\n             standalone_value:0, cta_potential:0, controversy:0,\n             relatability:0, quotability:0, suggested_title:'', hook_text:'', reason:'' };\n}\n\nconst weights = {\n  hook_strength: 0.20, emotional_intensity: 0.18, information_density: 0.12,\n  standalone_value: 0.15, cta_potential: 0.10, controversy: 0.10,\n  relatability: 0.10, quotability: 0.05\n};\n\nlet composite = 0;\nfor (const [k, w] of Object.entries(weights)) {\n  composite += (scores[k] || 0) * w;\n}\n\nreturn [{ json: {\n  ...segItem,\n  ...scores,\n  composite_score: Math.round(composite * 10)\n}}];"
+      },
+      "id": "node_09",
+      "name": "Parse Claude Response & Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1700, 300],
+      "notes": "Group 3 – Scoring & Filtering"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "node_10",
+      "name": "Aggregate All Scores",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [1900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.first().json.data || [];\n\n// Sort by composite_score descending\nconst sorted = [...items].sort((a, b) => b.composite_score - a.composite_score);\n\n// Diversity filter: no two clips within 30s of each other\nconst selected = [];\nconst MIN_GAP = 30;\nfor (const seg of sorted) {\n  const overlaps = selected.some(s =>\n    !(seg.end + MIN_GAP < s.start || seg.start > s.end + MIN_GAP)\n  );\n  if (!overlaps) selected.push(seg);\n  if (selected.length >= 10) break;\n}\n\nreturn selected.map(s => ({ json: s }));"
+      },
+      "id": "node_11",
+      "name": "Sort & Diversity Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2100, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const TOP = parseInt($('Set Variables').first().json.TOP_CLIPS) || 7;\nconst items = $input.all();\nreturn items.slice(0, TOP);"
+      },
+      "id": "node_12",
+      "name": "Keep Top N Segments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2300, 300]
+    },
+    {
+      "parameters": {
+        "command": "python3 /app/scripts/speaker_detection.py \"{{ $('Set Variables').first().json.VIDEO_PATH }}\" \"{{ $('Set Variables').first().json.OUTPUT_DIR }}/crop_data.json\" 2>&1"
+      },
+      "id": "node_13",
+      "name": "Speaker Detection",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2500, 300],
+      "notes": "Group 4 – Speaker Detection"
+    },
+    {
+      "parameters": {
+        "command": "cat \"{{ $('Set Variables').first().json.OUTPUT_DIR }}/crop_data.json\""
+      },
+      "id": "node_14",
+      "name": "Read Crop Data",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2700, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.stdout || '{}';\nlet crop;\ntry {\n  const data = JSON.parse(raw);\n  crop = data.dominant_crop;\n} catch(e) {\n  crop = { x: 0, y: 0, w: 608, h: 1080 };\n}\nreturn [{ json: { crop_data: crop } }];"
+      },
+      "id": "node_15",
+      "name": "Parse Crop Box",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2900, 300]
+    },
+    {
+      "parameters": {
+        "options": {
+          "batchSize": 1
+        }
+      },
+      "id": "node_16",
+      "name": "Loop Each Clip",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [3100, 300],
+      "notes": "Group 5 – Clip Generation"
+    },
+    {
+      "parameters": {
+        "command": "CLIP_IDX={{ $runIndex + 1 }}\nSTART={{ $json.start }}\nEND={{ $json.end }}\nDUR=$(echo \"$END - $START\" | bc)\nOUTDIR={{ $('Set Variables').first().json.OUTPUT_DIR }}\n\nffmpeg -y -ss $START -i \"{{ $('Set Variables').first().json.VIDEO_PATH }}\" \\\n  -t $DUR -c copy -avoid_negative_ts make_zero \\\n  \"$OUTDIR/raw_clip_${CLIP_IDX}.mp4\" 2>&1 && echo \"DONE:$OUTDIR/raw_clip_${CLIP_IDX}.mp4\""
+      },
+      "id": "node_17",
+      "name": "Extract Raw Clip",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [3300, 300]
+    },
+    {
+      "parameters": {
+        "command": "CLIP_IDX={{ $runIndex + 1 }}\nOUTDIR={{ $('Set Variables').first().json.OUTPUT_DIR }}\nCROP_X={{ $('Parse Crop Box').first().json.crop_data.x }}\nCROP_Y={{ $('Parse Crop Box').first().json.crop_data.y }}\nCROP_W={{ $('Parse Crop Box').first().json.crop_data.w }}\nCROP_H={{ $('Parse Crop Box').first().json.crop_data.h }}\n\nffmpeg -y -i \"$OUTDIR/raw_clip_${CLIP_IDX}.mp4\" \\\n  -vf \"crop=${CROP_W}:${CROP_H}:${CROP_X}:${CROP_Y},scale=1080:1920:flags=lanczos\" \\\n  -c:v libx264 -preset fast -crf 22 -c:a copy \\\n  \"$OUTDIR/cropped_clip_${CLIP_IDX}.mp4\" 2>&1 && echo DONE"
+      },
+      "id": "node_18",
+      "name": "Apply 9:16 Crop",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [3500, 300]
+    },
+    {
+      "parameters": {
+        "command": "CLIP_IDX={{ $runIndex + 1 }}\nSTART={{ $json.start }}\nEND={{ $json.end }}\nOUTDIR={{ $('Set Variables').first().json.OUTPUT_DIR }}\n\npython3 /app/scripts/subtitle_generation.py \\\n  \"$OUTDIR/raw_clip_${CLIP_IDX}.mp4\" \\\n  \"$OUTDIR/subs\" \\\n  \"$OPENAI_API_KEY\" 2>&1"
+      },
+      "id": "node_19",
+      "name": "Generate Subtitles",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [3700, 300]
+    },
+    {
+      "parameters": {
+        "command": "CLIP_IDX={{ $runIndex + 1 }}\nOUTDIR={{ $('Set Variables').first().json.OUTPUT_DIR }}\nASS_FILE=$(ls $OUTDIR/subs/raw_clip_${CLIP_IDX}.ass 2>/dev/null | head -1)\n\nif [ -n \"$ASS_FILE\" ]; then\n  ffmpeg -y -i \"$OUTDIR/cropped_clip_${CLIP_IDX}.mp4\" \\\n    -vf \"ass=${ASS_FILE}\" \\\n    -c:v libx264 -preset fast -crf 22 -c:a copy \\\n    \"$OUTDIR/subbed_clip_${CLIP_IDX}.mp4\" 2>&1 && echo DONE\nelse\n  cp \"$OUTDIR/cropped_clip_${CLIP_IDX}.mp4\" \"$OUTDIR/subbed_clip_${CLIP_IDX}.mp4\"\n  echo \"No ASS file found, using cropped clip\"\nfi"
+      },
+      "id": "node_20",
+      "name": "Burn Subtitles",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [3900, 300]
+    },
+    {
+      "parameters": {
+        "command": "CLIP_IDX={{ $runIndex + 1 }}\nOUTDIR={{ $('Set Variables').first().json.OUTPUT_DIR }}\nHOOK=\"{{ $json.hook_text }}\"\nFONT=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf\n\nif [ -n \"$HOOK\" ]; then\n  SAFE_HOOK=$(echo \"$HOOK\" | sed \"s/'/\\\\\\\\'/g\")\n  ffmpeg -y -i \"$OUTDIR/subbed_clip_${CLIP_IDX}.mp4\" \\\n    -vf \"drawtext=fontfile=${FONT}:text='${SAFE_HOOK}':fontsize=64:fontcolor=white:borderw=4:bordercolor=black:x=(w-text_w)/2:y=(h*0.08):enable='between(t,0,3)'\" \\\n    -c:v libx264 -preset fast -crf 22 -c:a copy \\\n    \"$OUTDIR/hooked_clip_${CLIP_IDX}.mp4\" 2>&1 && echo DONE\nelse\n  cp \"$OUTDIR/subbed_clip_${CLIP_IDX}.mp4\" \"$OUTDIR/hooked_clip_${CLIP_IDX}.mp4\"\n  echo \"No hook text\"\nfi"
+      },
+      "id": "node_21",
+      "name": "Add Hook Text Overlay",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [4100, 300]
+    },
+    {
+      "parameters": {
+        "command": "CLIP_IDX={{ $runIndex + 1 }}\nOUTDIR={{ $('Set Variables').first().json.OUTPUT_DIR }}\nCHANNEL=\"{{ $('Set Variables').first().json.CHANNEL_NAME }}\"\nFONT=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf\n\nDURATION=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"$OUTDIR/hooked_clip_${CLIP_IDX}.mp4\")\nCTA_START=$(echo \"$DURATION - 3\" | bc)\n\nffmpeg -y -i \"$OUTDIR/hooked_clip_${CLIP_IDX}.mp4\" \\\n  -vf \"drawtext=fontfile=${FONT}:text='Watch full video →':fontsize=56:fontcolor=white:borderw=4:bordercolor=black:x=(w-text_w)/2:y=(h*0.78):enable='between(t,${CTA_START},${DURATION})',drawtext=fontfile=${FONT}:text='${CHANNEL}':fontsize=40:fontcolor=#FFD700:borderw=3:bordercolor=black:x=(w-text_w)/2:y=(h*0.84):enable='between(t,${CTA_START},${DURATION})'\" \\\n  -c:v libx264 -preset fast -crf 22 -c:a copy \\\n  \"$OUTDIR/cta_clip_${CLIP_IDX}.mp4\" 2>&1 && echo DONE"
+      },
+      "id": "node_22",
+      "name": "Add CTA End Screen",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [4300, 300]
+    },
+    {
+      "parameters": {
+        "command": "CLIP_IDX={{ $runIndex + 1 }}\nOUTDIR={{ $('Set Variables').first().json.OUTPUT_DIR }}\nSCORE={{ $json.composite_score }}\nTITLE_SLUG=$(echo \"{{ $json.suggested_title }}\" | tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '_' | cut -c1-30)\n\nffmpeg -y -i \"$OUTDIR/cta_clip_${CLIP_IDX}.mp4\" \\\n  -af \"loudnorm=I=-14:TP=-2:LRA=11\" \\\n  -c:v copy \\\n  \"$OUTDIR/final_clip_${CLIP_IDX}_score${SCORE}_${TITLE_SLUG}.mp4\" 2>&1 && echo DONE"
+      },
+      "id": "node_23",
+      "name": "Normalise Audio",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [4500, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const CLIP_IDX = $runIndex + 1;\nconst OUTDIR = $('Set Variables').first().json.OUTPUT_DIR;\nconst seg = $('Loop Each Clip').first().json;\n\nreturn [{ json: {\n  clip_index: CLIP_IDX,\n  start: seg.start,\n  end: seg.end,\n  composite_score: seg.composite_score,\n  suggested_title: seg.suggested_title,\n  hook_text: seg.hook_text,\n  reason: seg.reason,\n  final_file: `${OUTDIR}/final_clip_${CLIP_IDX}_score${seg.composite_score}.mp4`\n}}];"
+      },
+      "id": "node_24",
+      "name": "Record Clip Metadata",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4700, 300]
+    },
+    {
+      "parameters": {
+        "command": "CLIP_IDX={{ $json.clip_index }}\nOUTDIR={{ $('Set Variables').first().json.OUTPUT_DIR }}\nCLIP_FILE=\"{{ $json.final_file }}\"\n\nif [ -f \"$CLIP_FILE\" ]; then\n  ffmpeg -y -i \"$CLIP_FILE\" \\\n    -af \"loudnorm=I=-14:TP=-2:LRA=11:print_format=json\" \\\n    -f null - 2>&1 | tail -20\nfi"
+      },
+      "id": "node_25",
+      "name": "Measure Loudness",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [4900, 300],
+      "notes": "Group 6 – Audio Enhancement"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check if music bed is available and clip is quiet\nconst MUSIC_PATH = $('Set Variables').first().json.MUSIC_PATH;\nconst hasMusicConfig = MUSIC_PATH && MUSIC_PATH.length > 0;\nconst stdout = $input.first().json.stdout || '';\n\nlet inputI = -70;\ntry {\n  const match = stdout.match(/\"input_i\"\\s*:\\s*\"([^\"]+)\"/);\n  if (match) inputI = parseFloat(match[1]);\n} catch(e) {}\n\n// Add music bed only if configured and clip audio is quiet (voice-only)\nconst needsMusicBed = hasMusicConfig && inputI < -30;\nreturn [{ json: { ...$('Record Clip Metadata').first().json, needsMusicBed, musicPath: MUSIC_PATH }}];"
+      },
+      "id": "node_26",
+      "name": "Decide Music Bed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [5100, 300]
+    },
+    {
+      "parameters": {
+        "command": "CLIP_IDX={{ $json.clip_index }}\nOUTDIR={{ $('Set Variables').first().json.OUTPUT_DIR }}\nFINAL=\"{{ $json.final_file }}\"\n\n# Extract frame at 20% into clip for thumbnail\nDUR=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"$FINAL\")\nTHUMB_T=$(echo \"$DUR * 0.20\" | bc)\n\nmkdir -p \"$OUTDIR/thumbnails\"\nffmpeg -y -ss $THUMB_T -i \"$FINAL\" -vframes 1 -q:v 2 \\\n  \"$OUTDIR/thumbnails/raw_thumb_${CLIP_IDX}.jpg\" 2>&1 && echo DONE"
+      },
+      "id": "node_27",
+      "name": "Extract Best Frame",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [5300, 300],
+      "notes": "Group 7 – Thumbnail & Preview"
+    },
+    {
+      "parameters": {
+        "command": "python3 /app/scripts/thumbnail_creation.py \\\n  \"{{ $json.final_file }}\" \\\n  \"{{ $json.final_file }}.segments.json\" \\\n  \"{{ $('Set Variables').first().json.OUTPUT_DIR }}/thumbnails\" 2>&1"
+      },
+      "id": "node_28",
+      "name": "Add Thumbnail Text Overlay",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [5500, 300]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "node_29",
+      "name": "Aggregate Clip Results",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [5700, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.first().json.data || [];\nconst gallery = items.map(item => ({\n  clip_index: item.clip_index,\n  title: item.suggested_title,\n  score: item.composite_score,\n  start: item.start,\n  end: item.end,\n  hook: item.hook_text,\n  reason: item.reason,\n  file: item.final_file,\n  thumbnail: item.final_file ? item.final_file.replace('.mp4', '_thumb.jpg') : null\n}));\n\ngallery.sort((a, b) => b.score - a.score);\n\nreturn [{ json: { gallery, total_clips: gallery.length, generated_at: new Date().toISOString() }}];"
+      },
+      "id": "node_30",
+      "name": "Build Preview Gallery",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [5900, 300]
+    },
+    {
+      "parameters": {
+        "amount": 3600,
+        "unit": "seconds",
+        "resumeExecution": true,
+        "webhookSuffix": "viral-clip-selection"
+      },
+      "id": "node_31",
+      "name": "Wait for User Selection",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [6100, 300],
+      "notes": "Group 8 – User Selection. POST to /webhook/viral-clip-selection with {\"clip_ids\": [1,3,5]}"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Receive selected clip IDs from webhook body\nconst body = $input.first().json.body || $input.first().json;\nconst selectedIds = body.clip_ids || [];\nconst gallery = $('Build Preview Gallery').first().json.gallery || [];\n\nconst finalClips = gallery.filter(c => selectedIds.includes(c.clip_index));\n\nif (finalClips.length === 0) {\n  // Default to top 3 if no selection received\n  return gallery.slice(0, 3).map(c => ({ json: c }));\n}\nreturn finalClips.map(c => ({ json: c }));"
+      },
+      "id": "node_32",
+      "name": "Filter Selected Clips",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [6300, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const clips = $input.all().map(i => i.json);\nconst OUTDIR = $('Set Variables').first().json.OUTPUT_DIR;\n\n// Write final manifest\nconst manifest = {\n  status: 'ready',\n  total_selected: clips.length,\n  clips: clips,\n  output_directory: OUTDIR,\n  generated_at: new Date().toISOString()\n};\n\nreturn [{ json: manifest }];"
+      },
+      "id": "node_33",
+      "name": "Prepare Final Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [6500, 300]
+    },
+    {
+      "parameters": {
+        "command": "OUTDIR={{ $('Set Variables').first().json.OUTPUT_DIR }}\necho '{{ JSON.stringify($json) }}' > \"$OUTDIR/final_manifest.json\"\necho \"=== VIRAL CLIP FINDER COMPLETE ===\"\necho \"Selected clips:\"\necho '{{ JSON.stringify($json.clips) }}' | python3 -c \"import sys,json; [print(f\\\"  [{c['clip_index']}] Score:{c['score']} | {c['title']}\\\") for c in json.load(sys.stdin)]\"\necho \"Manifest: $OUTDIR/final_manifest.json\""
+      },
+      "id": "node_34",
+      "name": "Write Final Manifest",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [6700, 300]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{"node": "Set Variables", "type": "main", "index": 0}]]
+    },
+    "Set Variables": {
+      "main": [[{"node": "Validate Video & Get Metadata", "type": "main", "index": 0}]]
+    },
+    "Validate Video & Get Metadata": {
+      "main": [[{"node": "Extract Audio", "type": "main", "index": 0}]]
+    },
+    "Extract Audio": {
+      "main": [[{"node": "Whisper Transcription API", "type": "main", "index": 0}]]
+    },
+    "Whisper Transcription API": {
+      "main": [[{"node": "Parse Transcript into Segments", "type": "main", "index": 0}]]
+    },
+    "Parse Transcript into Segments": {
+      "main": [[{"node": "Loop Segments", "type": "main", "index": 0}]]
+    },
+    "Loop Segments": {
+      "main": [[{"node": "Claude Viral Analysis", "type": "main", "index": 0}]]
+    },
+    "Claude Viral Analysis": {
+      "main": [[{"node": "Parse Claude Response & Score", "type": "main", "index": 0}]]
+    },
+    "Parse Claude Response & Score": {
+      "main": [[{"node": "Loop Segments", "type": "main", "index": 0}]]
+    },
+    "Loop Segments (done)": {
+      "main": [[{"node": "Aggregate All Scores", "type": "main", "index": 0}]]
+    },
+    "Aggregate All Scores": {
+      "main": [[{"node": "Sort & Diversity Filter", "type": "main", "index": 0}]]
+    },
+    "Sort & Diversity Filter": {
+      "main": [[{"node": "Keep Top N Segments", "type": "main", "index": 0}]]
+    },
+    "Keep Top N Segments": {
+      "main": [[{"node": "Speaker Detection", "type": "main", "index": 0}]]
+    },
+    "Speaker Detection": {
+      "main": [[{"node": "Read Crop Data", "type": "main", "index": 0}]]
+    },
+    "Read Crop Data": {
+      "main": [[{"node": "Parse Crop Box", "type": "main", "index": 0}]]
+    },
+    "Parse Crop Box": {
+      "main": [[{"node": "Loop Each Clip", "type": "main", "index": 0}]]
+    },
+    "Loop Each Clip": {
+      "main": [[{"node": "Extract Raw Clip", "type": "main", "index": 0}]]
+    },
+    "Extract Raw Clip": {
+      "main": [[{"node": "Apply 9:16 Crop", "type": "main", "index": 0}]]
+    },
+    "Apply 9:16 Crop": {
+      "main": [[{"node": "Generate Subtitles", "type": "main", "index": 0}]]
+    },
+    "Generate Subtitles": {
+      "main": [[{"node": "Burn Subtitles", "type": "main", "index": 0}]]
+    },
+    "Burn Subtitles": {
+      "main": [[{"node": "Add Hook Text Overlay", "type": "main", "index": 0}]]
+    },
+    "Add Hook Text Overlay": {
+      "main": [[{"node": "Add CTA End Screen", "type": "main", "index": 0}]]
+    },
+    "Add CTA End Screen": {
+      "main": [[{"node": "Normalise Audio", "type": "main", "index": 0}]]
+    },
+    "Normalise Audio": {
+      "main": [[{"node": "Record Clip Metadata", "type": "main", "index": 0}]]
+    },
+    "Record Clip Metadata": {
+      "main": [[{"node": "Measure Loudness", "type": "main", "index": 0}]]
+    },
+    "Measure Loudness": {
+      "main": [[{"node": "Decide Music Bed", "type": "main", "index": 0}]]
+    },
+    "Decide Music Bed": {
+      "main": [[{"node": "Extract Best Frame", "type": "main", "index": 0}]]
+    },
+    "Extract Best Frame": {
+      "main": [[{"node": "Add Thumbnail Text Overlay", "type": "main", "index": 0}]]
+    },
+    "Add Thumbnail Text Overlay": {
+      "main": [[{"node": "Loop Each Clip", "type": "main", "index": 0}]]
+    },
+    "Loop Each Clip (done)": {
+      "main": [[{"node": "Aggregate Clip Results", "type": "main", "index": 0}]]
+    },
+    "Aggregate Clip Results": {
+      "main": [[{"node": "Build Preview Gallery", "type": "main", "index": 0}]]
+    },
+    "Build Preview Gallery": {
+      "main": [[{"node": "Wait for User Selection", "type": "main", "index": 0}]]
+    },
+    "Wait for User Selection": {
+      "main": [[{"node": "Filter Selected Clips", "type": "main", "index": 0}]]
+    },
+    "Filter Selected Clips": {
+      "main": [[{"node": "Prepare Final Output", "type": "main", "index": 0}]]
+    },
+    "Prepare Final Output": {
+      "main": [[{"node": "Write Final Manifest", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "viral-clip-finder-v1"
+  },
+  "pinData": {},
+  "versionId": "1.0.0",
+  "triggerCount": 0,
+  "tags": [
+    {"name": "video", "createdAt": "2026-05-25"},
+    {"name": "viral", "createdAt": "2026-05-25"},
+    {"name": "automation", "createdAt": "2026-05-25"}
+  ]
+}

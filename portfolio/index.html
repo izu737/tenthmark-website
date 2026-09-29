@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Izuu | Sales and AI Automation Specialist</title>
+<meta name="description" content="Izuchukwu Okafor builds sales and AI automation systems: lead generation, cold outreach, AI agents and pipelines that do the work.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070708;
+    --bg-2:#0d0d0f;
+    --bg-3:#141417;
+    --ink:#f3f1ec;
+    --ink-2:#a9a7a2;
+    --ink-3:#6b6a67;
+    --line:rgba(243,241,236,0.09);
+    --line-2:rgba(243,241,236,0.16);
+    --accent:#5b7cff;
+    --accent-2:#9db0ff;
+    --ease:cubic-bezier(.16,1,.3,1);
+    --serif:'Instrument Serif', Georgia, serif;
+    --sans:'Inter Tight', system-ui, sans-serif;
+    --mono:'JetBrains Mono', ui-monospace, monospace;
+    --gutter:clamp(20px, 5vw, 72px);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-weight:400;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  a{color:inherit;text-decoration:none;}
+  img{max-width:100%;display:block;}
+  ::selection{background:var(--accent);color:#fff;}
+  em{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:-0.01em;}
+
+  /* film grain */
+  body::after{
+    content:'';position:fixed;inset:-50%;z-index:9999;pointer-events:none;opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation:grain 1s steps(4) infinite;
+  }
+  @keyframes grain{
+    0%{transform:translate(0,0)}25%{transform:translate(-3%,2%)}50%{transform:translate(2%,-3%)}75%{transform:translate(-2%,-2%)}100%{transform:translate(0,0)}
+  }
+
+  .wrap{max-width:1320px;margin:0 auto;padding:0 var(--gutter);}
+  .mono{font-family:var(--mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);}
+
+  /* ---------- NAV ---------- */
+  nav{
+    position:fixed;top:14px;left:50%;transform:translateX(-50%);
+    z-index:100;width:min(1180px, calc(100% - 28px));
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 10px 10px 22px;border-radius:100px;
+    border:1px solid transparent;
+    transition:background .5s var(--ease), border-color .5s var(--ease), backdrop-filter .5s var(--ease);
+  }
+  nav.scrolled{
+    background:rgba(13,13,15,.72);
+    border-color:var(--line);
+    backdrop-filter:blur(18px) saturate(140%);
+    -webkit-backdrop-filter:blur(18px) saturate(140%);
+  }
+  .logo{font-weight:600;font-size:1.05rem;letter-spacing:-.02em;display:flex;align-items:center;gap:10px;}
+  .logo-mark{
+    width:26px;height:26px;border-radius:8px;display:grid;place-items:center;
+    background:linear-gradient(140deg,var(--accent),#2b3fb8);
+    font-family:var(--serif);font-style:italic;font-size:1rem;color:#fff;
+  }
+  .nav-links{display:flex;gap:34px;font-size:.9rem;color:var(--ink-2);}
+  .nav-links a{transition:color .3s ease;}
+  .nav-links a:hover{color:var(--ink);}
+
+  /* ---------- BUTTONS ---------- */
+  .btn{
+    position:relative;display:inline-flex;align-items:center;gap:12px;
+    padding:15px 26px;border-radius:100px;font-size:.95rem;font-weight:500;
+    border:1px solid var(--line-2);overflow:hidden;isolation:isolate;
+    transition:border-color .4s var(--ease), color .4s var(--ease), transform .4s var(--ease);
+    will-change:transform;
+  }
+  .btn .arrow{
+    width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+    background:var(--ink);color:var(--bg);transition:transform .5s var(--ease);
+  }
+  .btn:hover .arrow{transform:rotate(-45deg);}
+  .btn-light{background:var(--ink);color:var(--bg);border-color:var(--ink);padding:8px 8px 8px 24px;}
+  .btn-light .arrow{background:var(--bg);color:var(--ink);width:38px;height:38px;}
+  .btn-light::before{
+    content:'';position:absolute;inset:0;z-index:-1;background:var(--accent);
+    transform:translateY(101%);transition:transform .5s var(--ease);border-radius:inherit;
+  }
+  .btn-light:hover{color:#fff;border-color:var(--accent);}
+  .btn-light:hover::before{transform:translateY(0);}
+  .btn-ghost:hover{border-color:var(--ink);}
+  .btn-sm{padding:6px 6px 6px 18px;font-size:.86rem;}
+  .btn-sm .arrow{width:30px;height:30px;}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative;min-height:100svh;display:flex;flex-direction:column;justify-content:flex-end;
+    padding:140px 0 56px;overflow:hidden;
+  }
+  .hero-glow{
+    position:absolute;pointer-events:none;border-radius:50%;filter:blur(120px);
+  }
+  .hero-glow.g1{width:60vw;height:60vw;max-width:900px;max-height:900px;top:-30%;right:-15%;
+    background:radial-gradient(circle,rgba(91,124,255,.32),transparent 65%);animation:drift 24s ease-in-out infinite;}
+  .hero-glow.g2{width:40vw;height:40vw;max-width:600px;max-height:600px;bottom:-20%;left:-10%;
+    background:radial-gradient(circle,rgba(157,176,255,.14),transparent 65%);animation:drift 30s ease-in-out infinite reverse;}
+  @keyframes drift{0%,100%{transform:translate(0,0)}50%{transform:translate(-6%,8%)}}
+  .hero-grid{
+    position:absolute;inset:0;pointer-events:none;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:88px 88px;opacity:.35;
+    mask-image:radial-gradient(ellipse 70% 60% at 60% 30%,#000 20%,transparent 75%);
+    -webkit-mask-image:radial-gradient(ellipse 70% 60% at 60% 30%,#000 20%,transparent 75%);
+  }
+  .hero .wrap{position:relative;z-index:2;width:100%;}
+  .status{
+    display:inline-flex;align-items:center;gap:10px;padding:8px 16px 8px 12px;border-radius:100px;
+    border:1px solid var(--line-2);background:rgba(243,241,236,.03);font-size:.84rem;color:var(--ink-2);
+    margin-bottom:36px;
+  }
+  .status .dot{width:8px;height:8px;border-radius:50%;background:#3ddc84;position:relative;}
+  .status .dot::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1px solid #3ddc84;animation:ping 2s var(--ease) infinite;}
+  @keyframes ping{0%{transform:scale(.6);opacity:1}100%{transform:scale(2);opacity:0}}
+  .status b{color:var(--ink);font-weight:500;}
+
+  .hero h1{
+    font-size:clamp(3.1rem, 10.4vw, 10.5rem);
+    font-weight:500;line-height:.92;letter-spacing:-.055em;
+  }
+  .hero h1 em{letter-spacing:-.03em;color:var(--accent-2);}
+  .line{display:block;overflow:hidden;padding-bottom:.08em;}
+  .line > span{display:inline-block;transform:translateY(110%);transition:transform 1.2s var(--ease);}
+  .loaded .line > span{transform:translateY(0);}
+  .line:nth-child(2) > span{transition-delay:.09s;}
+  .line:nth-child(3) > span{transition-delay:.18s;}
+
+  .hero-foot{
+    margin-top:56px;display:grid;grid-template-columns:1.1fr 1fr auto;gap:40px;align-items:end;
+    padding-top:32px;border-top:1px solid var(--line);
+  }
+  .hero-foot p{font-size:clamp(1rem,1.3vw,1.18rem);line-height:1.55;color:var(--ink-2);max-width:40ch;}
+  .hero-foot p strong{color:var(--ink);font-weight:500;}
+  .hero-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end;}
+  .hero-stat{display:flex;gap:18px;align-items:baseline;}
+  .hero-stat .big{font-size:clamp(2.4rem,4vw,3.6rem);font-weight:500;letter-spacing:-.04em;line-height:1;}
+  .hero-stat .small{font-size:.86rem;color:var(--ink-2);line-height:1.4;max-width:16ch;}
+  .fade-up{opacity:0;transform:translateY(24px);transition:opacity 1s var(--ease) .5s, transform 1s var(--ease) .5s;}
+  .loaded .fade-up{opacity:1;transform:none;}
+
+
+  /* ---------- SECTIONS ---------- */
+  section{position:relative;padding:clamp(100px,14vw,180px) 0;}
+  .sec-head{display:grid;grid-template-columns:220px 1fr;gap:40px;margin-bottom:clamp(56px,7vw,96px);}
+  .sec-head h2{font-size:clamp(2.3rem,5.4vw,4.8rem);font-weight:500;letter-spacing:-.045em;line-height:1;max-width:16ch;}
+  .sec-head h2 em{color:var(--accent-2);}
+
+  .reveal{opacity:0;transform:translateY(40px);transition:opacity 1.1s var(--ease), transform 1.1s var(--ease);}
+  .reveal.in{opacity:1;transform:none;}
+
+  /* ---------- PROOF ---------- */
+  .proof-quote{
+    font-size:clamp(1.9rem,4.3vw,3.9rem);font-weight:400;letter-spacing:-.035em;line-height:1.12;
+    max-width:24ch;
+  }
+  .proof-quote .w{opacity:.14;transition:opacity .5s ease;}
+  .proof-quote .w.on{opacity:1;}
+  .proof-quote em{color:var(--accent-2);}
+  .proof-grid{
+    margin-top:clamp(64px,8vw,110px);display:grid;grid-template-columns:1.25fr 1fr 1fr;
+    border:1px solid var(--line);border-radius:28px;overflow:hidden;background:var(--bg-2);
+  }
+  .proof-cell{padding:clamp(28px,3.4vw,48px);display:flex;flex-direction:column;justify-content:space-between;gap:48px;min-height:300px;position:relative;}
+  .proof-cell + .proof-cell{border-left:1px solid var(--line);}
+  .proof-cell .num{font-size:clamp(4rem,8vw,7.4rem);font-weight:500;letter-spacing:-.06em;line-height:.85;}
+  .proof-cell .num sup{font-size:.4em;vertical-align:top;position:relative;top:.2em;color:var(--accent-2);margin-left:2px;letter-spacing:0;}
+  .proof-cell h3{font-size:clamp(1.3rem,1.8vw,1.6rem);font-weight:500;letter-spacing:-.02em;line-height:1.2;}
+  .proof-cell p{color:var(--ink-2);font-size:.96rem;line-height:1.55;margin-top:10px;}
+  .proof-cell.feature{background:radial-gradient(120% 100% at 0% 100%,rgba(91,124,255,.22),transparent 60%);}
+  .icon-badge{width:48px;height:48px;border-radius:14px;border:1px solid var(--line-2);display:grid;place-items:center;color:var(--accent-2);}
+
+  /* ---------- ABOUT ---------- */
+  .about{display:grid;grid-template-columns:.8fr 1.2fr;gap:clamp(40px,7vw,110px);align-items:start;}
+  .portrait{
+    position:relative;border-radius:24px;overflow:hidden;aspect-ratio:4/5;background:var(--bg-3);
+    border:1px solid var(--line);position:sticky;top:110px;
+  }
+  .portrait img{width:100%;height:100%;object-fit:cover;filter:grayscale(.25) contrast(1.05);transform:scale(1.06);transition:transform 1.6s var(--ease), filter .8s ease;}
+  .portrait:hover img{transform:scale(1);filter:none;}
+  .portrait .fallback{position:absolute;inset:0;display:none;place-items:center;font-family:var(--serif);font-style:italic;font-size:9rem;color:var(--ink-3);
+    background:radial-gradient(circle at 30% 20%,rgba(91,124,255,.25),transparent 60%),var(--bg-3);}
+  .portrait.noimg .fallback{display:grid;}
+  .portrait .tag{position:absolute;left:16px;bottom:16px;right:16px;display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;border-radius:14px;background:rgba(7,7,8,.6);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);font-size:.86rem;}
+  .portrait .tag span:last-child{color:var(--ink-2);}
+  .about-body .lead{font-size:clamp(1.6rem,2.8vw,2.5rem);font-weight:400;letter-spacing:-.03em;line-height:1.2;margin-bottom:40px;}
+  .about-body .lead em{color:var(--accent-2);}
+  .about-body p.copy{font-size:1.1rem;line-height:1.75;color:var(--ink-2);max-width:54ch;margin-bottom:22px;}
+  .caps{margin-top:56px;display:grid;grid-template-columns:repeat(2,1fr);border-top:1px solid var(--line);}
+  .caps div{padding:22px 0;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:baseline;font-size:1.05rem;}
+  .caps div:nth-child(odd){padding-right:24px;}
+  .caps div:nth-child(even){padding-left:24px;border-left:1px solid var(--line);}
+  .caps .mono{color:var(--accent-2);}
+
+  /* ---------- WORK ---------- */
+  .work-list{border-top:1px solid var(--line);}
+  .row{
+    position:relative;display:grid;grid-template-columns:80px 1.3fr 1fr 150px;gap:32px;align-items:center;
+    padding:40px 0;border-bottom:1px solid var(--line);isolation:isolate;
+  }
+  .row::before{
+    content:'';position:absolute;inset:0 calc(var(--gutter) * -1);z-index:-1;
+    background:radial-gradient(600px circle at var(--mx,50%) var(--my,50%),rgba(91,124,255,.14),transparent 50%);
+    opacity:0;transition:opacity .5s ease;
+  }
+  .row:hover::before{opacity:1;}
+  .row .idx{font-family:var(--mono);font-size:.8rem;color:var(--ink-3);}
+  .row h3{font-size:clamp(1.6rem,3vw,2.7rem);font-weight:500;letter-spacing:-.04em;line-height:1.02;transition:transform .6s var(--ease), color .4s ease;}
+  .row:hover h3{transform:translateX(12px);}
+  .row h3 em{color:var(--accent-2);}
+  .row .desc{color:var(--ink-2);font-size:.98rem;line-height:1.6;}
+  .row .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px;}
+  .row .tags span{font-family:var(--mono);font-size:.68rem;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);border:1px solid var(--line-2);padding:5px 10px;border-radius:100px;}
+  .row .metric{text-align:right;}
+  .row .metric b{display:block;font-size:clamp(1.8rem,2.8vw,2.6rem);font-weight:500;letter-spacing:-.04em;line-height:1;}
+  .row .metric small{display:block;margin-top:6px;font-size:.8rem;color:var(--ink-3);}
+  .row .watch{
+    display:inline-flex;align-items:center;gap:8px;margin-top:14px;font-size:.84rem;color:var(--ink);
+    padding:8px 14px;border-radius:100px;border:1px solid var(--line-2);transition:background .4s var(--ease), color .4s var(--ease), border-color .4s;
+  }
+  .row .watch:hover{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+  .row .watch svg{transition:transform .4s var(--ease);}
+  .row .watch:hover svg{transform:translateX(3px);}
+  .row-link{position:absolute;inset:0;z-index:1;}
+  .row .watch{position:relative;z-index:2;}
+
+  /* ---------- PROCESS ---------- */
+  .process{background:var(--bg-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  .step{
+    border:1px solid var(--line);border-radius:24px;padding:36px;min-height:340px;display:flex;flex-direction:column;justify-content:space-between;
+    background:var(--bg);transition:border-color .5s ease, transform .6s var(--ease);position:relative;overflow:hidden;
+  }
+  .step:hover{border-color:var(--line-2);transform:translateY(-6px);}
+  .step .n{font-family:var(--serif);font-style:italic;font-size:5.5rem;line-height:.8;color:var(--accent-2);opacity:.9;}
+  .step h3{font-size:1.6rem;font-weight:500;letter-spacing:-.03em;margin-bottom:12px;}
+  .step p{color:var(--ink-2);line-height:1.6;font-size:.98rem;}
+
+  /* ---------- CTA ---------- */
+  .cta{text-align:center;overflow:hidden;padding:clamp(120px,16vw,220px) 0 clamp(80px,10vw,140px);}
+  .cta-glow{position:absolute;left:50%;bottom:-40%;transform:translateX(-50%);width:120vw;height:80vw;max-height:1100px;
+    background:radial-gradient(closest-side,rgba(91,124,255,.28),transparent);pointer-events:none;}
+  .cta .mono{display:block;margin-bottom:28px;}
+  .cta h2{font-size:clamp(3.4rem,12vw,12rem);font-weight:500;letter-spacing:-.06em;line-height:.9;position:relative;}
+  .cta h2 em{color:var(--accent-2);}
+  .cta p{color:var(--ink-2);font-size:1.15rem;max-width:44ch;margin:34px auto 44px;line-height:1.6;position:relative;}
+  .cta-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;position:relative;}
+  .cta-links{margin-top:64px;display:flex;gap:28px;justify-content:center;flex-wrap:wrap;position:relative;}
+  .cta-links a{color:var(--ink-2);font-size:.95rem;border-bottom:1px solid var(--line-2);padding-bottom:3px;transition:color .3s, border-color .3s;}
+  .cta-links a:hover{color:var(--ink);border-color:var(--ink);}
+
+  footer{border-top:1px solid var(--line);padding:28px 0;}
+  footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:.84rem;color:var(--ink-3);}
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width:1024px){
+    .hero-foot{grid-template-columns:1fr 1fr;}
+    .hero-actions{grid-column:1 / -1;justify-content:flex-start;}
+    .row{grid-template-columns:56px 1fr 130px;}
+    .row .desc-wrap{grid-column:2 / -1;}
+  }
+  @media (max-width:820px){
+    .nav-links{display:none;}
+    .sec-head{grid-template-columns:1fr;gap:18px;}
+    .proof-grid{grid-template-columns:1fr;}
+    .proof-cell + .proof-cell{border-left:none;border-top:1px solid var(--line);}
+    .proof-cell{min-height:auto;}
+    .about{grid-template-columns:1fr;}
+    .portrait{position:relative;top:0;max-width:420px;}
+    .steps{grid-template-columns:1fr;}
+    .step{min-height:260px;}
+  }
+  @media (max-width:640px){
+    .hero{padding-top:120px;}
+    .hero-foot{grid-template-columns:1fr;gap:28px;}
+    .row{grid-template-columns:1fr;gap:14px;padding:32px 0;}
+    .row .desc-wrap{grid-column:auto;}
+    .row .metric{text-align:left;display:flex;align-items:baseline;gap:10px;}
+    .row .metric small{margin:0;}
+    .caps{grid-template-columns:1fr;}
+    .caps div:nth-child(even){padding-left:0;border-left:none;}
+    .btn-light.hide-sm{display:none;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none !important;transition:none !important;}
+    .line > span,.fade-up,.reveal{transform:none;opacity:1;}
+    .proof-quote .w{opacity:1;}
+  }
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <a href="#top" class="logo"><span class="logo-mark">i</span>Izuu</a>
+  <div class="nav-links">
+    <a href="#proof">Results</a>
+    <a href="#about">About</a>
+    <a href="#work">Work</a>
+    <a href="#process">Process</a>
+  </div>
+  <a href="#contact" class="btn btn-light btn-sm">Start a project
+    <span class="arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+  </a>
+</nav>
+
+<!-- HERO -->
+<header class="hero" id="top">
+  <div class="hero-grid"></div>
+  <div class="hero-glow g1"></div>
+  <div class="hero-glow g2"></div>
+
+  <div class="wrap">
+    <div class="status fade-up"><span class="dot"></span><b>Sales and AI Automation Specialist</b> · Taking new projects</div>
+    <h1>
+      <span class="line"><span>I build systems</span></span>
+      <span class="line"><span>that <em>sell,</em> scale</span></span>
+      <span class="line"><span>and <em>do the work.</em></span></span>
+    </h1>
+
+    <div class="hero-foot fade-up">
+      <p>Lead generation, cold outreach, AI agents and automation pipelines, built from scratch. <strong>Less manual work, more revenue, nothing falling through the cracks.</strong></p>
+      <div class="hero-stat">
+        <span class="big">$56K+</span>
+        <span class="small">in added revenue for the companies I've worked with</span>
+      </div>
+      <div class="hero-actions">
+        <a href="#work" class="btn btn-light">See the work
+          <span class="arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
+
+<!-- PROOF -->
+<section id="proof">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="mono reveal">(01) Results</span>
+      <p class="proof-quote" id="quote">I've generated over <em>$56K in added revenue</em> for the companies I’ve worked for, and these include a creator with over 150k followers and a startup backed by Sequoia Capital.</p>
+    </div>
+
+    <div class="proof-grid reveal">
+      <div class="proof-cell feature">
+        <span class="mono">Added revenue</span>
+        <div>
+          <div class="num">$<span data-count="56">0</span>K<sup>+</sup></div>
+          <p>Generated across the companies I've built sales and automation systems for.</p>
+        </div>
+      </div>
+      <div class="proof-cell">
+        <div class="icon-badge">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.7.8 2.7 2.5 3 5.2"/></svg>
+        </div>
+        <div>
+          <div class="num" style="font-size:clamp(3rem,5.4vw,4.8rem)"><span data-count="150">0</span>K<sup>+</sup></div>
+          <h3 style="margin-top:18px">Creator audience</h3>
+          <p>Built for a creator with over 150K followers.</p>
+        </div>
+      </div>
+      <div class="proof-cell">
+        <div class="icon-badge">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+        </div>
+        <div>
+          <h3 style="font-size:clamp(1.6rem,2.3vw,2.1rem);letter-spacing:-.035em">Did sales for a company backed by <em>Sequoia Capital</em></h3>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="wrap">
+    <div class="about">
+      <div class="portrait reveal" id="portrait">
+        <img src="/portfolio/photo.jpg" alt="Izuchukwu Okafor" onerror="if(!this.dataset.retry){this.dataset.retry=1;this.src='photo.jpg';}else{this.parentElement.classList.add('noimg');this.remove();}">
+        <div class="fallback">Iz</div>
+        <div class="tag"><span>Izuchukwu Okafor</span><span>Remote, worldwide</span></div>
+      </div>
+
+      <div class="about-body">
+        <span class="mono reveal" style="display:block;margin-bottom:28px">(02) About</span>
+        <p class="lead reveal">Somewhere in almost every business, there are <em>two or three hours a day</em> being spent on things a well built system could handle in seconds. I find those hours and I build the system.</p>
+        <p class="copy reveal">So far that has meant outreach pipelines, agentic lead qualification, speed to lead systems, content engines and proposal generators. The technology changes depending on the problem.</p>
+        <p class="copy reveal">The goal is always the same: less manual work, more output, and nothing falling through the cracks.</p>
+
+        <div class="caps reveal">
+          <div><span class="mono">A</span>Lead generation</div>
+          <div><span class="mono">B</span>Cold outreach</div>
+          <div><span class="mono">C</span>AI sales agents</div>
+          <div><span class="mono">D</span>Automation pipelines</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WORK -->
+<section id="work">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="mono reveal">(03) Selected work</span>
+      <h2 class="reveal">Systems running <em>in production.</em></h2>
+    </div>
+
+    <div class="work-list">
+
+      <article class="row reveal">
+        <a class="row-link" href="https://youtu.be/A9hiOdYBOY4" target="_blank" rel="noopener" aria-label="Watch the AI SDR demo"></a>
+        <span class="idx">01</span>
+        <h3>AI SDR: <em>Speed to Lead</em></h3>
+        <div class="desc-wrap">
+          <p class="desc">An AI agent that calls leads within 90 seconds of a positive reply and books them on a calendar. No human in the loop.</p>
+          <div class="tags"><span>n8n</span><span>Claude API</span><span>Webhooks</span></div>
+        </div>
+        <div class="metric"><b>90s</b><small>reply to call</small>
+          <a class="watch" href="https://youtu.be/A9hiOdYBOY4" target="_blank" rel="noopener">Watch demo <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+      </article>
+
+      <article class="row reveal">
+        <a class="row-link" href="https://youtu.be/75qmHtS0qko" target="_blank" rel="noopener" aria-label="Watch the lead scraper demo"></a>
+        <span class="idx">02</span>
+        <h3>High Intent <em>Lead Scraper</em></h3>
+        <div class="desc-wrap">
+          <p class="desc">Finds companies actively hiring for the exact problem a service solves. Turns a full day of prospecting into a 30 minute automated run.</p>
+          <div class="tags"><span>n8n</span><span>Apify</span><span>AnyMailFinder</span></div>
+        </div>
+        <div class="metric"><b>30 min</b><small>instead of a full day</small>
+          <a class="watch" href="https://youtu.be/75qmHtS0qko" target="_blank" rel="noopener">Watch demo <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+      </article>
+
+      <article class="row reveal">
+        <a class="row-link" href="https://youtu.be/LdQaySwpt2k" target="_blank" rel="noopener" aria-label="Watch the icebreaker generator demo"></a>
+        <span class="idx">03</span>
+        <h3>Cold Email <em>Icebreakers</em></h3>
+        <div class="desc-wrap">
+          <p class="desc">Personalised cold email openers at scale that read like a human spent time on each one. Anything that misses the quality bar gets skipped.</p>
+          <div class="tags"><span>n8n</span><span>Claude API</span><span>Prompt Engineering</span></div>
+        </div>
+        <div class="metric"><b>At scale</b><small>human quality</small>
+          <a class="watch" href="https://youtu.be/LdQaySwpt2k" target="_blank" rel="noopener">Watch demo <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+      </article>
+
+      <article class="row reveal">
+        <a class="row-link" href="https://youtu.be/aNN20LTp8Cc" target="_blank" rel="noopener" aria-label="Watch the content engine demo"></a>
+        <span class="idx">04</span>
+        <h3>Content <em>Repurposing</em> Engine</h3>
+        <div class="desc-wrap">
+          <p class="desc">Takes one piece of long form content and produces a LinkedIn post, a newsletter section and a short form video script automatically.</p>
+          <div class="tags"><span>n8n</span><span>Claude API</span><span>Google Docs</span></div>
+        </div>
+        <div class="metric"><b>1 → 3</b><small>assets per piece</small>
+          <a class="watch" href="https://youtu.be/aNN20LTp8Cc" target="_blank" rel="noopener">Watch demo <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+      </article>
+
+      <article class="row reveal">
+        <a class="row-link" href="https://youtu.be/3R_FHw4h14I" target="_blank" rel="noopener" aria-label="Watch the proposal generator demo"></a>
+        <span class="idx">05</span>
+        <h3>Proposal <em>Generator</em></h3>
+        <div class="desc-wrap">
+          <p class="desc">Takes a client brief and produces a fully formatted proposal with scope, timeline and pricing in 15 minutes. It used to take two hours.</p>
+          <div class="tags"><span>n8n</span><span>Claude API</span><span>Google Docs</span></div>
+        </div>
+        <div class="metric"><b>15 min</b><small>down from 2 hours</small>
+          <a class="watch" href="https://youtu.be/3R_FHw4h14I" target="_blank" rel="noopener">Watch demo <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+      </article>
+
+      <article class="row reveal">
+        <a class="row-link" href="https://izu737.github.io/job-sites/" target="_blank" rel="noopener" aria-label="See the website generation system"></a>
+        <span class="idx">06</span>
+        <h3>Website <em>Generation</em> System</h3>
+        <div class="desc-wrap">
+          <p class="desc">Scrapes a company's entire website, extracts their real content and branding, and generates a fully animated branded site for them in under 60 seconds.</p>
+          <div class="tags"><span>n8n</span><span>Claude API</span><span>GitHub Pages</span><span>Jina AI</span></div>
+        </div>
+        <div class="metric"><b>&lt;60s</b><small>per branded site</small>
+          <a class="watch" href="https://izu737.github.io/job-sites/" target="_blank" rel="noopener">See it live <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section id="process" class="process">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="mono reveal">(04) How I work</span>
+      <h2 class="reveal">Find the hours. <em>Build the system.</em></h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <span class="n">01</span>
+        <div><h3>Find the leak</h3><p>I map where time and pipeline are being lost: slow replies, manual prospecting, work that repeats every single day.</p></div>
+      </div>
+      <div class="step reveal">
+        <span class="n">02</span>
+        <div><h3>Build the system</h3><p>I design and build the automation from scratch around your tools, with quality checks so nothing embarrassing goes out.</p></div>
+      </div>
+      <div class="step reveal">
+        <span class="n">03</span>
+        <div><h3>Let it run</h3><p>The system goes live and does the work. You get the hours back and more of the pipeline turns into revenue.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="contact" class="cta">
+  <div class="cta-glow"></div>
+  <div class="wrap">
+    <span class="mono reveal">(05) Contact</span>
+    <h2 class="reveal">Let's build<br><em>something.</em></h2>
+    <p class="reveal">Open to freelance projects, contractor roles and interesting problems. Available remotely, worldwide.</p>
+    <div class="cta-actions reveal">
+      <a href="mailto:okaforizuchukwu737@gmail.com" class="btn btn-light">okaforizuchukwu737@gmail.com
+        <span class="arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+    </div>
+    <div class="cta-links reveal">
+      <a href="https://www.linkedin.com/in/izuchukwu-okafor-178073303/" target="_blank" rel="noopener">LinkedIn ↗</a>
+      <a href="https://github.com/izu737" target="_blank" rel="noopener">GitHub ↗</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Izuchukwu Okafor</span>
+    <span>Built from scratch, obviously.</span>
+  </div>
+</footer>
+
+<script>
+  // Hero intro
+  requestAnimationFrame(() => setTimeout(() => document.body.classList.add('loaded'), 60));
+
+  // Nav state
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 30);
+  window.addEventListener('scroll', onScroll, { passive:true });
+  onScroll();
+
+  // Reveal with stagger per parent
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const sibs = [...entry.target.parentElement.children].filter(el => el.classList.contains('reveal'));
+      entry.target.style.transitionDelay = (Math.max(0, sibs.indexOf(entry.target)) * 0.07) + 's';
+      entry.target.classList.add('in');
+      io.unobserve(entry.target);
+    });
+  }, { threshold:0.12, rootMargin:'0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // Social proof quote: words light up as you scroll through it
+  const quote = document.getElementById('quote');
+  const wrapWords = (node) => {
+    [...node.childNodes].forEach(child => {
+      if (child.nodeType === 3) {
+        const frag = document.createDocumentFragment();
+        child.textContent.split(/(\s+)/).forEach(part => {
+          if (!part) return;
+          if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); return; }
+          const s = document.createElement('span'); s.className = 'w'; s.textContent = part; frag.appendChild(s);
+        });
+        node.replaceChild(frag, child);
+      } else if (child.nodeType === 1) {
+        wrapWords(child);
+      }
+    });
+  };
+  wrapWords(quote);
+  const words = quote.querySelectorAll('.w');
+  const lightWords = () => {
+    const r = quote.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const progress = Math.min(1, Math.max(0, (vh * 0.85 - r.top) / (r.height + vh * 0.35)));
+    const lit = Math.round(progress * words.length);
+    words.forEach((w, i) => w.classList.toggle('on', i < lit));
+  };
+  window.addEventListener('scroll', lightWords, { passive:true });
+  lightWords();
+
+  // Count up numbers
+  const countIO = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target, end = +el.dataset.count, dur = 1600, t0 = performance.now();
+      const tick = (t) => {
+        const p = Math.min(1, (t - t0) / dur);
+        el.textContent = Math.round(end * (1 - Math.pow(1 - p, 4)));
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+      countIO.unobserve(el);
+    });
+  }, { threshold:0.5 });
+  document.querySelectorAll('[data-count]').forEach(el => countIO.observe(el));
+
+  // Spotlight that follows the cursor on work rows
+  document.querySelectorAll('.row').forEach(row => {
+    row.addEventListener('mousemove', e => {
+      const r = row.getBoundingClientRect();
+      row.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+      row.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    });
+  });
+
+  // Magnetic buttons (desktop pointers only)
+  if (window.matchMedia('(pointer:fine)').matches && !window.matchMedia('(prefers-reduced-motion:reduce)').matches) {
+    document.querySelectorAll('.btn').forEach(btn => {
+      btn.addEventListener('mousemove', e => {
+        const r = btn.getBoundingClientRect();
+        const x = (e.clientX - r.left - r.width / 2) * 0.18;
+        const y = (e.clientY - r.top - r.height / 2) * 0.28;
+        btn.style.transform = `translate(${x}px, ${y}px)`;
+      });
+      btn.addEventListener('mouseleave', () => { btn.style.transform = ''; });
+    });
+  }
+</script>
+
+</body>
+</html>

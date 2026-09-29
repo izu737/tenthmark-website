@@ -4,49 +4,44 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TenthMark — B2B Lead Generation</title>
-  <meta name="description" content="TenthMark books sales calls onto your calendar. You only pay when calls land. No retainers. No monthly minimums." />
+  <meta name="description" content="TenthMark books qualified sales calls onto your calendar. You only pay when calls land. No retainers. No monthly minimums." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300;1,9..40,400&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+
   <style>
-    /* ─── Reset ─── */
+    /* ── Reset ─────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
 
-    /* ─── Tokens ─── */
+    /* ── Tokens ─────────────────────────────── */
     :root {
-      --sand-0:  #ffffff;
-      --sand-10: #f8f7f7;
-      --sand-20: #ebebea;
-      --sand-30: #d8d6d4;
-      --sand-40: #b0adab;
-      --sand-50: #77736e;
-      --sand-60: #585450;
-      --sand-70: #3f3c39;
-      --sand-80: #2b2926;
-      --black:   #000000;
+      --ink:        #08090a;
+      --ink-soft:   #161719;
+      --chalk:      #f5f4f1;
+      --chalk-2:    #edecea;
+      --chalk-3:    #d9d7d4;
+      --chalk-4:    #b4b1ad;
+      --chalk-5:    #7a776f;
+      --gold:       #b8935a;
+      --gold-light: #d4ab72;
+      --gold-dim:   rgba(184,147,90,0.15);
+      --white:      #ffffff;
 
-      --ocean-20: #dae5fc;
-      --ocean-30: #a8c3eb;
-      --ocean-50: #447aaf;
+      --serif: 'Cormorant Garamond', Georgia, serif;
+      --sans:  'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 
-      --iris-20: #e4dcf9;
-
-      --sun-30: #faff5c;
-      --sun-50: #ebf212;
-      --sun-70: #d8e003;
-
-      --r-sm: 6px;
+      --r-sm: 4px;
       --r-md: 10px;
-      --r-lg: 16px;
-      --font: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --r-lg: 18px;
+      --r-xl: 28px;
     }
 
-    /* ─── Base ─── */
+    /* ── Base ───────────────────────────────── */
     body {
-      font-family: var(--font);
-      background: var(--sand-0);
-      color: var(--sand-80);
+      font-family: var(--sans);
+      background: var(--white);
+      color: var(--ink);
       font-size: 16px;
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
@@ -54,788 +49,1266 @@
     }
 
     a { color: inherit; text-decoration: none; }
+    img { display: block; max-width: 100%; }
 
     .container {
-      max-width: 1080px;
+      max-width: 1100px;
       margin: 0 auto;
-      padding: 0 24px;
+      padding: 0 40px;
     }
 
-    /* ─── Grain overlay ─── */
+    /* ── Grain ──────────────────────────────── */
     .grain {
       position: fixed;
       inset: 0;
       pointer-events: none;
       z-index: 9000;
-      opacity: 0.038;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity: 0.025;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
       background-repeat: repeat;
-      background-size: 200px 200px;
+      background-size: 180px;
     }
 
-    /* ─── Fade-in on scroll ─── */
-    .fade-in {
+    /* ── Reveal animation (applied only after JS runs) ─ */
+    body.js-ready .reveal {
       opacity: 0;
-      transform: translateY(22px);
-      transition: opacity 0.65s ease, transform 0.65s ease;
+      transform: translateY(28px);
+      transition: opacity 0.72s cubic-bezier(0.16,1,0.3,1),
+                  transform 0.72s cubic-bezier(0.16,1,0.3,1);
     }
-    .fade-in.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    body.js-ready .reveal.visible { opacity: 1; transform: none; }
+    body.js-ready .reveal-d1 { transition-delay: 0.08s; }
+    body.js-ready .reveal-d2 { transition-delay: 0.16s; }
+    body.js-ready .reveal-d3 { transition-delay: 0.24s; }
+    body.js-ready .reveal-d4 { transition-delay: 0.32s; }
 
-    /* ─── Section spacing ─── */
-    section { padding: 100px 0; }
-    section + section { border-top: 1px solid var(--sand-20); }
-
-    .section-label {
+    /* ── Eyebrow label ──────────────────────── */
+    .label {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--sans);
       font-size: 11px;
       font-weight: 600;
-      letter-spacing: 0.13em;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: var(--sand-40);
-      margin-bottom: 14px;
+      color: var(--gold);
+    }
+    .label::before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 1px;
+      background: var(--gold);
     }
 
-    h2 {
-      font-size: clamp(28px, 3.5vw, 42px);
-      font-weight: 700;
-      letter-spacing: -0.028em;
-      line-height: 1.18;
-      color: var(--black);
-      margin-bottom: 16px;
+    /* ── Buttons ────────────────────────────── */
+    .btn-dark {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--ink);
+      color: var(--white);
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      padding: 14px 28px;
+      border-radius: 100px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
     }
+    .btn-dark:hover { background: #1e2024; transform: translateY(-1px); }
+    .btn-dark:active { transform: none; }
 
-    .section-desc {
-      font-size: 17px;
-      font-weight: 400;
-      color: var(--sand-60);
-      max-width: 540px;
-      line-height: 1.7;
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      padding: 13px 26px;
+      border-radius: 100px;
+      border: 1.5px solid var(--chalk-3);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
     }
+    .btn-ghost:hover { border-color: var(--chalk-5); background: var(--chalk); }
 
-    /* ─── Nav ─── */
+    .btn-gold {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--gold);
+      color: var(--white);
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      padding: 15px 32px;
+      border-radius: 100px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 2px 12px rgba(184,147,90,0.3);
+    }
+    .btn-gold:hover {
+      background: var(--gold-light);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(184,147,90,0.35);
+    }
+    .btn-gold:active { transform: none; }
+
+    /* ── NAV ─────────────────────────────────── */
     nav {
-      position: sticky;
+      position: fixed;
       top: 0;
-      z-index: 100;
-      background: rgba(255,255,255,0.88);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--sand-20);
+      left: 0;
+      right: 0;
+      z-index: 500;
+      transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+    }
+    nav.scrolled {
+      background: rgba(8,9,10,0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
     }
 
     .nav-inner {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 24px;
-      max-width: 1080px;
+      padding: 22px 40px;
+      max-width: 1100px;
       margin: 0 auto;
     }
 
     .logo {
+      font-family: var(--serif);
       font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -0.035em;
-      color: var(--black);
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: var(--white);
     }
+    .logo span {
+      color: var(--gold);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 36px;
+      list-style: none;
+    }
+    .nav-links a {
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.55);
+      letter-spacing: 0.02em;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--white); }
 
     .nav-cta {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: var(--black);
-      color: var(--sand-0);
-      font-family: var(--font);
-      font-size: 14px;
-      font-weight: 500;
-      padding: 10px 20px;
-      border-radius: var(--r-sm);
-      transition: background 0.15s ease, transform 0.1s ease;
+      background: var(--gold);
+      color: var(--white);
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      padding: 11px 22px;
+      border-radius: 100px;
+      transition: background 0.2s, transform 0.15s;
     }
-    .nav-cta:hover { background: var(--sand-70); transform: translateY(-1px); }
+    .nav-cta:hover { background: var(--gold-light); transform: translateY(-1px); }
 
-    /* ─── Hero ─── */
+    /* ── HERO ────────────────────────────────── */
     .hero {
-      padding: 130px 0 110px;
-      text-align: center;
-      border-top: none;
+      min-height: 100vh;
+      background: var(--ink);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 0 0 80px;
       position: relative;
       overflow: hidden;
     }
 
-    /* Aurora orbs */
-    .aurora {
+    /* Subtle mesh gradient */
+    .hero-mesh {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 15% 20%, rgba(184,147,90,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 80% at 85% 70%, rgba(80,100,160,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 50% 50%, rgba(30,32,36,0.6) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Thin horizontal lines for texture */
+    .hero-lines {
       position: absolute;
       inset: 0;
       pointer-events: none;
-      z-index: 0;
+      background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 80px,
+        rgba(255,255,255,0.016) 80px,
+        rgba(255,255,255,0.016) 81px
+      );
     }
 
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(80px);
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      padding: 0 40px;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
     }
 
-    .orb-1 {
-      width: 700px; height: 700px;
-      background: radial-gradient(circle, rgba(90,150,230,0.6) 0%, transparent 65%);
-      top: -220px; left: -150px;
-      animation: f1 14s ease-in-out infinite;
-    }
-    .orb-2 {
-      width: 560px; height: 560px;
-      background: radial-gradient(circle, rgba(150,110,240,0.42) 0%, transparent 65%);
-      top: -80px; right: -100px;
-      animation: f2 19s ease-in-out infinite;
-    }
-    .orb-3 {
-      width: 520px; height: 520px;
-      background: radial-gradient(circle, rgba(80,160,250,0.55) 0%, transparent 65%);
-      bottom: -120px; left: 38%; transform: translateX(-50%);
-      animation: f3 11s ease-in-out infinite;
-    }
-    .orb-4 {
-      width: 340px; height: 340px;
-      background: radial-gradient(circle, rgba(170,210,255,0.38) 0%, transparent 70%);
-      top: 25%; left: 55%;
-      animation: f4 22s ease-in-out infinite;
-    }
-
-    @keyframes f1 {
-      0%,100% { transform: translate(0,0) scale(1); }
-      35%      { transform: translate(55px,45px) scale(1.07); }
-      70%      { transform: translate(-30px,60px) scale(0.95); }
-    }
-    @keyframes f2 {
-      0%,100% { transform: translate(0,0) scale(1); }
-      48%      { transform: translate(-70px,55px) scale(1.12); }
-    }
-    @keyframes f3 {
-      0%,100% { transform: translateX(-50%) scale(1); }
-      42%      { transform: translateX(-50%) translate(40px,-45px) scale(1.09); }
-      80%      { transform: translateX(-50%) translate(-25px,30px) scale(0.92); }
-    }
-    @keyframes f4 {
-      0%,100% { transform: translate(0,0) scale(1); }
-      50%      { transform: translate(50px,-60px) scale(1.18); }
-    }
-
-    .hero .container { position: relative; z-index: 1; }
-
-    .eyebrow {
-      display: inline-block;
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--sans);
       font-size: 11px;
       font-weight: 600;
-      letter-spacing: 0.13em;
+      letter-spacing: 0.16em;
       text-transform: uppercase;
-      color: var(--sand-50);
-      margin-bottom: 32px;
+      color: var(--gold);
+      margin-bottom: 36px;
+    }
+    .hero-eyebrow::before {
+      content: '';
+      display: block;
+      width: 24px;
+      height: 1px;
+      background: var(--gold);
     }
 
     h1 {
-      font-size: clamp(40px, 6vw, 70px);
+      font-family: var(--serif);
+      font-size: clamp(52px, 7.5vw, 96px);
       font-weight: 300;
-      letter-spacing: -0.035em;
-      line-height: 1.1;
-      color: var(--sand-60);
-      max-width: 820px;
-      margin: 0 auto 26px;
+      letter-spacing: -0.02em;
+      line-height: 1.04;
+      color: var(--chalk);
+      max-width: 800px;
+      margin-bottom: 40px;
     }
 
-    /* Rotating word */
-    .rotate-wrap {
+    h1 em {
+      font-style: italic;
+      color: var(--white);
+      font-weight: 400;
+    }
+
+    h1 .rotate-wrap {
       display: inline-block;
       overflow: hidden;
       vertical-align: bottom;
       line-height: inherit;
-      padding: 0 0.12em;
-      margin: 0 -0.12em;
     }
-
-    .rotate-word {
+    h1 .rotate-word {
       display: inline-block;
-      font-weight: 800;
-      color: var(--black);
+      color: var(--gold-light);
+      font-style: italic;
+      font-weight: 400;
     }
 
-    @keyframes wIn  { from { transform: translateY(70%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    @keyframes wOut { from { transform: translateY(0);   opacity: 1; } to { transform: translateY(-70%); opacity: 0; } }
-
-    .rotate-word.is-entering { animation: wIn  0.38s cubic-bezier(0.16,1,0.3,1) forwards; }
-    .rotate-word.is-leaving  { animation: wOut 0.3s  ease forwards; }
+    @keyframes wIn  { from { transform: translateY(80%); opacity: 0; } to { transform: none; opacity: 1; } }
+    @keyframes wOut { from { transform: none; opacity: 1; } to { transform: translateY(-80%); opacity: 0; } }
+    .rotate-word.is-entering { animation: wIn  0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
+    .rotate-word.is-leaving  { animation: wOut 0.3s ease forwards; }
 
     .hero-sub {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 400;
-      color: var(--sand-50);
-      max-width: 460px;
-      margin: 0 auto 44px;
-      line-height: 1.72;
+      color: rgba(255,255,255,0.42);
+      max-width: 440px;
+      line-height: 1.75;
+      margin-bottom: 48px;
     }
 
-    /* ─── Buttons ─── */
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--sun-50);
-      color: var(--black);
-      font-family: var(--font);
-      font-size: 15px;
-      font-weight: 700;
-      padding: 15px 32px;
-      border-radius: var(--r-sm);
-      border: none;
-      cursor: pointer;
-      transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    }
-    .btn-primary:hover  { background: var(--sun-30); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
-    .btn-primary:active { background: var(--sun-70); transform: translateY(0); box-shadow: none; }
-
-    /* ─── Trust bar ─── */
-    .trust-bar {
-      background: var(--sand-10);
-      border-top: 1px solid var(--sand-20);
-      border-bottom: 1px solid var(--sand-20);
-      padding: 20px 0;
-    }
-
-    .trust-inner {
+    .hero-actions {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 10px;
+      gap: 16px;
       flex-wrap: wrap;
     }
 
-    .trust-label {
+    .hero-note {
+      font-size: 12px;
+      color: rgba(255,255,255,0.28);
+      letter-spacing: 0.02em;
+    }
+
+    /* Scroll indicator */
+    .scroll-hint {
+      position: absolute;
+      bottom: 36px;
+      right: 40px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      writing-mode: vertical-rl;
+      z-index: 1;
+    }
+    .scroll-hint::before {
+      content: '';
+      display: block;
+      width: 1px;
+      height: 40px;
+      background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.2));
+      animation: scrollLine 2s ease-in-out infinite;
+    }
+    @keyframes scrollLine {
+      0%, 100% { transform: scaleY(1); opacity: 1; }
+      50% { transform: scaleY(0.5); opacity: 0.5; }
+    }
+
+    /* ── METRICS STRIP ───────────────────────── */
+    .metrics-strip {
+      background: var(--chalk);
+      border-bottom: 1px solid var(--chalk-3);
+      padding: 36px 0;
+    }
+
+    .metrics-inner {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    .metric-item {
+      text-align: center;
+      padding: 0 56px;
+    }
+    .metric-item + .metric-item {
+      border-left: 1px solid var(--chalk-3);
+    }
+
+    .metric-value {
+      font-family: var(--serif);
+      font-size: 42px;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      display: block;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .metric-label {
       font-size: 12px;
       font-weight: 500;
-      color: var(--sand-40);
-      letter-spacing: 0.05em;
+      color: var(--chalk-5);
+      letter-spacing: 0.02em;
       text-transform: uppercase;
+    }
+
+    /* ── TOOL STRIP ─────────────────────────── */
+    .tool-strip {
+      background: var(--white);
+      border-bottom: 1px solid var(--chalk-2);
+      padding: 18px 0;
+    }
+
+    .tool-inner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tool-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--chalk-4);
       margin-right: 8px;
     }
 
-    .trust-pill {
+    .tool-pill {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      font-size: 13px;
+      gap: 5px;
+      font-size: 12px;
       font-weight: 600;
-      color: var(--sand-60);
-      background: var(--sand-0);
-      border: 1px solid var(--sand-20);
+      color: var(--chalk-5);
+      background: var(--chalk);
+      border: 1px solid var(--chalk-2);
       padding: 5px 12px;
       border-radius: 100px;
+      letter-spacing: 0.01em;
       transition: border-color 0.15s, color 0.15s;
     }
+    .tool-pill:hover { border-color: var(--chalk-4); color: var(--ink); }
 
-    .trust-pill:hover { border-color: var(--sand-30); color: var(--sand-80); }
+    /* ── SECTIONS ────────────────────────────── */
+    .section {
+      padding: 120px 0;
+      border-top: 1px solid var(--chalk-2);
+    }
+    .section:first-of-type { border-top: none; }
 
-    .trust-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--sand-30);
+    .section-alt { background: var(--chalk); }
+    .section-dark { background: var(--ink-soft); }
+
+    h2 {
+      font-family: var(--serif);
+      font-size: clamp(32px, 4vw, 52px);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.12;
+      color: var(--ink);
+      margin-bottom: 18px;
     }
 
-    /* ─── How It Works ─── */
-    .steps-grid {
+    h2 em { font-style: italic; font-weight: 300; color: var(--chalk-5); }
+
+    .section-desc {
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--chalk-5);
+      max-width: 520px;
+      line-height: 1.78;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 40px;
+      margin-bottom: 72px;
+    }
+    .section-header-left { flex: 1; }
+
+    /* ── HOW IT WORKS ────────────────────────── */
+    .steps {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 2px;
-      margin-top: 64px;
-      background: var(--sand-20);
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--chalk-2);
       border-radius: var(--r-lg);
       overflow: hidden;
     }
 
     .step {
-      background: var(--sand-0);
-      padding: 36px 30px;
+      background: var(--white);
+      padding: 44px 32px;
+      display: flex;
+      flex-direction: column;
       transition: background 0.2s;
     }
-    .step:hover { background: var(--sand-10); }
+    .step:hover { background: var(--chalk); }
 
     .step-num {
-      width: 30px; height: 30px;
-      background: var(--sand-10);
-      border: 1px solid var(--sand-20);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--sand-50);
-      margin-bottom: 20px;
+      font-family: var(--serif);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--gold);
+      letter-spacing: 0.1em;
+      margin-bottom: 32px;
     }
 
     .step h3 {
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--black);
-      margin-bottom: 10px;
+      font-family: var(--serif);
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--ink);
+      margin-bottom: 12px;
       letter-spacing: -0.01em;
+      line-height: 1.25;
     }
 
     .step p {
       font-size: 14px;
-      font-weight: 500;
-      color: var(--sand-60);
-      line-height: 1.65;
+      font-weight: 400;
+      color: var(--chalk-5);
+      line-height: 1.72;
+      flex: 1;
     }
 
-    /* ─── What You Get ─── */
-    .deliverables-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-      gap: 16px;
-      margin-top: 56px;
-    }
-
-    .del-card {
-      background: var(--sand-0);
-      border: 1px solid var(--sand-20);
-      border-radius: var(--r-md);
-      padding: 28px 26px;
-      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-    }
-    .del-card:hover {
-      border-color: var(--sand-30);
-      transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-    }
-
-    .del-icon {
-      width: 40px; height: 40px;
-      background: var(--sand-10);
-      border: 1px solid var(--sand-20);
-      border-radius: var(--r-sm);
-      display: flex;
+    .step-arrow {
+      display: inline-flex;
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--chalk-3);
+      border-radius: 50%;
       align-items: center;
       justify-content: center;
-      color: var(--sand-70);
-      margin-bottom: 18px;
+      color: var(--chalk-4);
+      margin-top: 28px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .step:hover .step-arrow { border-color: var(--gold); color: var(--gold); }
+
+    /* ── WHAT YOU GET ────────────────────────── */
+    .deliverables {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1px;
+      background: var(--chalk-2);
+      border-radius: var(--r-lg);
+      overflow: hidden;
     }
 
-    .del-card h3 {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--black);
-      margin-bottom: 8px;
+    .del {
+      background: var(--white);
+      padding: 48px 44px;
+      transition: background 0.2s;
+    }
+    .del:hover { background: var(--chalk); }
+
+    .del-num {
+      font-family: var(--serif);
+      font-size: 48px;
+      font-weight: 300;
+      color: var(--chalk-2);
+      line-height: 1;
+      letter-spacing: -0.03em;
+      margin-bottom: 28px;
     }
 
-    .del-card p {
-      font-size: 14px;
+    .del h3 {
+      font-family: var(--serif);
+      font-size: 22px;
       font-weight: 500;
-      color: var(--sand-60);
-      line-height: 1.65;
+      color: var(--ink);
+      margin-bottom: 10px;
+      letter-spacing: -0.01em;
     }
 
-    /* ─── Who It's For ─── */
-    .split {
+    .del p {
+      font-size: 14px;
+      color: var(--chalk-5);
+      line-height: 1.72;
+    }
+
+    /* ── WHO IT'S FOR ────────────────────────── */
+    .for-split {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 80px;
       align-items: start;
     }
 
-    @media (max-width: 720px) {
-      .split { grid-template-columns: 1fr; gap: 48px; }
-    }
-
-    .client-list {
-      list-style: none;
-      margin-top: 36px;
+    .clients {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
+      margin-top: 36px;
     }
 
-    .client-list li {
+    .client-row {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 13px 16px;
+      justify-content: space-between;
+      padding: 16px 20px;
       border-radius: var(--r-sm);
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--sand-70);
-      background: var(--sand-0);
-      border: 1px solid var(--sand-20);
-      transition: border-color 0.15s, background 0.15s, transform 0.15s;
+      background: var(--white);
+      border: 1px solid var(--chalk-2);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--chalk-5);
       cursor: default;
+      transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.15s;
     }
-    .client-list li:hover {
-      border-color: var(--sand-30);
-      background: var(--sand-10);
+    .client-row:hover {
+      border-color: var(--chalk-3);
+      background: var(--chalk);
+      color: var(--ink);
       transform: translateX(4px);
     }
-    .client-list li::before {
-      content: '';
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--sand-30);
-      flex-shrink: 0;
-    }
+    .client-row svg { opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+    .client-row:hover svg { opacity: 1; }
 
-    /* ─── The Offer ─── */
-    .offer-section { background: var(--sand-10); }
-
-    .offer-cards {
+    /* ── OFFER ───────────────────────────────── */
+    .offer-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 14px;
-      margin-top: 56px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
     }
 
     .offer-card {
-      background: var(--sand-0);
-      border: 1px solid var(--sand-20);
-      border-radius: var(--r-md);
-      padding: 28px 24px;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      background: var(--white);
+      border: 1px solid var(--chalk-2);
+      border-radius: var(--r-lg);
+      padding: 36px 32px;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
     }
     .offer-card:hover {
-      border-color: var(--sand-30);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+      border-color: var(--chalk-3);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.06);
+      transform: translateY(-3px);
+    }
+
+    .offer-card-icon {
+      width: 44px; height: 44px;
+      background: var(--gold-dim);
+      border-radius: var(--r-sm);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--gold);
+      margin-bottom: 24px;
     }
 
     .offer-card h3 {
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--black);
+      font-family: var(--serif);
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--ink);
       margin-bottom: 10px;
+      letter-spacing: -0.01em;
     }
 
     .offer-card p {
       font-size: 14px;
-      font-weight: 500;
-      color: var(--sand-60);
-      line-height: 1.65;
+      color: var(--chalk-5);
+      line-height: 1.72;
     }
 
-    /* ─── FAQ ─── */
-    .faq-list {
-      margin-top: 56px;
-      border-top: 1px solid var(--sand-20);
+    /* Featured card */
+    .offer-card.featured {
+      background: var(--ink);
+      border-color: transparent;
+      color: var(--white);
     }
+    .offer-card.featured h3 { color: var(--white); }
+    .offer-card.featured p { color: rgba(255,255,255,0.45); }
+    .offer-card.featured .offer-card-icon {
+      background: rgba(184,147,90,0.15);
+      color: var(--gold-light);
+    }
+    .offer-card.featured:hover {
+      border-color: rgba(255,255,255,0.1);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    }
+
+    /* ── TESTIMONIAL ─────────────────────────── */
+    .testimonial-section {
+      background: var(--chalk);
+      border-top: 1px solid var(--chalk-2);
+      border-bottom: 1px solid var(--chalk-2);
+      padding: 100px 0;
+    }
+
+    .testimonial-inner {
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .quote-mark {
+      font-family: var(--serif);
+      font-size: 80px;
+      font-weight: 300;
+      color: var(--chalk-3);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .quote-text {
+      font-family: var(--serif);
+      font-size: clamp(22px, 3vw, 32px);
+      font-weight: 300;
+      font-style: italic;
+      color: var(--ink);
+      line-height: 1.55;
+      letter-spacing: -0.01em;
+      margin-bottom: 40px;
+    }
+
+    .quote-author {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .quote-avatar {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: var(--chalk-3);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .quote-meta { text-align: left; }
+    .quote-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      display: block;
+    }
+    .quote-role {
+      font-size: 12px;
+      color: var(--chalk-5);
+      display: block;
+      margin-top: 1px;
+    }
+
+    /* ── FAQ ─────────────────────────────────── */
+    .faq-list { margin-top: 56px; }
 
     .faq-item {
-      border-bottom: 1px solid var(--sand-20);
+      border-top: 1px solid var(--chalk-2);
     }
+    .faq-item:last-child { border-bottom: 1px solid var(--chalk-2); }
 
     .faq-item summary {
-      padding: 22px 0;
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--black);
+      padding: 24px 0;
+      font-family: var(--serif);
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--ink);
       cursor: pointer;
       list-style: none;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      user-select: none;
+      letter-spacing: -0.01em;
       transition: color 0.15s;
     }
     .faq-item summary::-webkit-details-marker { display: none; }
-    .faq-item summary:hover { color: var(--sand-70); }
+    .faq-item summary:hover { color: var(--chalk-5); }
 
     .faq-toggle {
-      width: 22px; height: 22px;
-      border: 1.5px solid var(--sand-30);
+      width: 28px; height: 28px;
+      border: 1.5px solid var(--chalk-3);
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
-      font-size: 16px;
-      font-weight: 400;
-      color: var(--sand-40);
+      color: var(--chalk-4);
+      font-size: 18px;
+      font-weight: 300;
       line-height: 1;
-      transition: border-color 0.2s, transform 0.25s, color 0.2s;
+      transition: border-color 0.2s, color 0.2s, transform 0.25s;
     }
-
     .faq-item[open] .faq-toggle {
       transform: rotate(45deg);
-      border-color: var(--sand-50);
-      color: var(--sand-50);
+      border-color: var(--gold);
+      color: var(--gold);
     }
 
     .faq-body {
-      padding-bottom: 22px;
+      padding-bottom: 28px;
       font-size: 15px;
-      font-weight: 500;
-      color: var(--sand-60);
-      line-height: 1.7;
-      max-width: 680px;
+      color: var(--chalk-5);
+      line-height: 1.78;
+      max-width: 660px;
     }
 
-    /* ─── Final CTA ─── */
-    .cta-section { text-align: center; }
+    /* ── FINAL CTA ───────────────────────────── */
+    .cta-section {
+      background: var(--ink);
+      padding: 140px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-mesh {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 80% at 80% 50%, rgba(184,147,90,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 60% at 20% 30%, rgba(60,80,140,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .cta-content { position: relative; z-index: 1; text-align: center; }
 
     .cta-section h2 {
-      max-width: 560px;
+      color: var(--chalk);
+      max-width: 620px;
       margin: 0 auto 16px;
     }
+    .cta-section h2 em { color: rgba(255,255,255,0.35); }
 
-    .cta-section .section-desc {
-      margin: 0 auto 44px;
-      text-align: center;
+    .cta-sub {
+      font-size: 16px;
+      color: rgba(255,255,255,0.38);
+      max-width: 420px;
+      margin: 0 auto 48px;
+      line-height: 1.72;
     }
 
-    /* ─── Footer ─── */
+    .cta-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .cta-note {
+      font-size: 12px;
+      color: rgba(255,255,255,0.22);
+      margin-top: 20px;
+      letter-spacing: 0.02em;
+    }
+
+    /* ── FOOTER ──────────────────────────────── */
     footer {
-      border-top: 1px solid var(--sand-20);
-      padding: 36px 0;
+      background: var(--ink);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      padding: 56px 0 36px;
     }
 
-    .footer-inner {
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 56px;
+    }
+
+    .footer-brand .logo-f {
+      font-family: var(--serif);
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--white);
+      margin-bottom: 14px;
+    }
+    .footer-brand .logo-f span { color: var(--gold); }
+
+    .footer-brand p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.32);
+      line-height: 1.72;
+      max-width: 240px;
+    }
+
+    .footer-col h4 {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.28);
+      margin-bottom: 20px;
+    }
+
+    .footer-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .footer-col ul li a {
+      font-size: 13px;
+      color: rgba(255,255,255,0.48);
+      transition: color 0.15s;
+    }
+    .footer-col ul li a:hover { color: var(--white); }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding-top: 28px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 16px;
-    }
-
-    .footer-logo {
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: -0.035em;
-      color: var(--black);
+      gap: 12px;
     }
 
     .footer-copy {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--sand-40);
+      font-size: 12px;
+      color: rgba(255,255,255,0.22);
     }
 
-    /* ─── Responsive ─── */
-    @media (max-width: 640px) {
-      section { padding: 72px 0; }
-      .hero { padding: 90px 0 80px; }
-      h1 { font-size: 40px; }
-      .steps-grid { grid-template-columns: 1fr; }
-      .deliverables-grid { grid-template-columns: 1fr; }
-      .offer-cards { grid-template-columns: 1fr; }
-      .orb-1 { width: 400px; height: 400px; }
-      .orb-2 { width: 320px; height: 320px; }
-      .orb-3 { width: 300px; height: 300px; }
-      .orb-4 { display: none; }
-      .footer-inner { flex-direction: column; align-items: flex-start; }
+    /* ── RESPONSIVE ──────────────────────────── */
+    @media (max-width: 1024px) {
+      .steps { grid-template-columns: repeat(2, 1fr); }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 768px) {
+      .container { padding: 0 24px; }
+      .nav-inner { padding: 18px 24px; }
+      .nav-links { display: none; }
+      .hero-content { padding: 0 24px; }
+
+      h1 { font-size: clamp(44px, 10vw, 68px); }
+
+      .section { padding: 80px 0; }
+      .section-header { flex-direction: column; align-items: flex-start; gap: 20px; }
+
+      .metrics-inner { flex-wrap: wrap; gap: 0; }
+      .metric-item { width: 50%; padding: 24px 32px; }
+      .metric-item:nth-child(odd) { border-right: 1px solid var(--chalk-3); }
+      .metric-item:nth-child(1),
+      .metric-item:nth-child(2) { border-bottom: 1px solid var(--chalk-3); }
+      .metric-item + .metric-item { border-left: none; }
+
+      .steps { grid-template-columns: 1fr; }
+      .deliverables { grid-template-columns: 1fr; }
+      .for-split { grid-template-columns: 1fr; gap: 40px; }
+      .offer-grid { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr; }
+      .scroll-hint { display: none; }
+    }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 42px; }
+      .metric-item { width: 100%; border-left: none !important; }
+      .metric-item + .metric-item { border-top: 1px solid var(--chalk-3); border-bottom: none; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Grain texture -->
   <div class="grain" aria-hidden="true"></div>
 
-  <!-- ── Nav ── -->
-  <nav>
+  <!-- ── NAV ──────────────────────────────────── -->
+  <nav id="nav">
     <div class="nav-inner">
-      <div class="logo">TenthMark</div>
+      <div class="logo">Tenth<span>Mark</span></div>
+      <ul class="nav-links">
+        <li><a href="#how-it-works">How it works</a></li>
+        <li><a href="#what-you-get">What you get</a></li>
+        <li><a href="#the-offer">Pricing</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
       <a href="https://calendly.com/izuchukwugodswill/quick-chat-with-izuu" target="_blank" rel="noopener" class="nav-cta">
-        Book a call &rarr;
+        Book a call →
       </a>
     </div>
   </nav>
 
-  <!-- ── Hero ── -->
+  <!-- ── HERO ─────────────────────────────────── -->
   <section class="hero">
-    <div class="aurora" aria-hidden="true">
-      <div class="orb orb-1"></div>
-      <div class="orb orb-2"></div>
-      <div class="orb orb-3"></div>
-      <div class="orb orb-4"></div>
-    </div>
-    <div class="container">
-      <span class="eyebrow">B2B Lead Generation</span>
+    <div class="hero-mesh" aria-hidden="true"></div>
+    <div class="hero-lines" aria-hidden="true"></div>
+
+    <div class="hero-content">
+      <div class="hero-eyebrow">B2B Lead Generation</div>
       <h1>
-        More sales&nbsp;<span class="rotate-wrap"><span class="rotate-word" id="rotateWord">calls</span></span>.
+        More qualified<br>
+        <span class="rotate-wrap"><span class="rotate-word" id="rotateWord">calls</span></span><br>
+        on your calendar.
       </h1>
       <p class="hero-sub">
-        We handle your outreach from start to finish.
-        You only pay when calls land on your calendar.
-        No retainers. No monthly minimums.
+        We handle your entire outreach operation — from
+        verified leads to booked meetings. You only pay when
+        calls land. No retainers. No monthly minimums.
       </p>
-      <a href="https://calendly.com/izuchukwugodswill/quick-chat-with-izuu" target="_blank" rel="noopener" class="btn-primary">
-        Get started &rarr;
-      </a>
+      <div class="hero-actions">
+        <a href="https://calendly.com/izuchukwugodswill/quick-chat-with-izuu" target="_blank" rel="noopener" class="btn-gold">
+          Book a free strategy call
+        </a>
+        <a href="#how-it-works" class="btn-ghost" style="color:rgba(255,255,255,0.55);border-color:rgba(255,255,255,0.15);">
+          See how it works
+        </a>
+      </div>
+      <p class="hero-note" style="margin-top:28px;">No commitment. 30 minutes. We'll tell you if we're a fit.</p>
     </div>
+
+    <div class="scroll-hint" aria-hidden="true">Scroll</div>
   </section>
 
-  <!-- ── Trust bar ── -->
-  <div class="trust-bar">
-    <div class="trust-inner container">
-      <span class="trust-label">Outreach stack</span>
-      <span class="trust-pill"><span class="trust-dot"></span>Apollo</span>
-      <span class="trust-pill"><span class="trust-dot"></span>LinkedIn</span>
-      <span class="trust-pill"><span class="trust-dot"></span>Clay</span>
-      <span class="trust-pill"><span class="trust-dot"></span>Instantly</span>
-      <span class="trust-pill"><span class="trust-dot"></span>Smartlead</span>
+  <!-- ── METRICS STRIP ─────────────────────────── -->
+  <div class="metrics-strip">
+    <div class="metrics-inner">
+      <div class="metric-item">
+        <span class="metric-value">3–5×</span>
+        <span class="metric-label">Avg. calls booked per week</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-value">14 days</span>
+        <span class="metric-label">Avg. time to first booked call</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-value">$0</span>
+        <span class="metric-label">Upfront. Pay per call only</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-value">100%</span>
+        <span class="metric-label">Done-for-you outreach</span>
+      </div>
     </div>
   </div>
 
-  <!-- ── How It Works ── -->
-  <section id="how-it-works">
-    <div class="container fade-in">
-      <p class="section-label">How it works</p>
-      <h2>Four steps from zero to a full calendar</h2>
-      <p class="section-desc">
-        We run the whole outreach operation so you can stay focused on closing deals.
-      </p>
-      <div class="steps-grid">
+  <!-- ── TOOL STRIP ────────────────────────────── -->
+  <div class="tool-strip">
+    <div class="tool-inner">
+      <span class="tool-label">Outreach stack</span>
+      <span class="tool-pill">Apollo</span>
+      <span class="tool-pill">LinkedIn Sales Nav</span>
+      <span class="tool-pill">Clay</span>
+      <span class="tool-pill">Instantly</span>
+      <span class="tool-pill">Smartlead</span>
+    </div>
+  </div>
+
+  <!-- ── HOW IT WORKS ──────────────────────────── -->
+  <section class="section" id="how-it-works">
+    <div class="container">
+      <div class="section-header reveal">
+        <div class="section-header-left">
+          <div class="label" style="margin-bottom:18px;">How it works</div>
+          <h2>Four steps from zero<br>to a <em>full calendar</em></h2>
+        </div>
+        <p class="section-desc">
+          We run your entire outreach operation from start to finish,
+          so you can stay focused on what you do best — closing deals.
+        </p>
+      </div>
+
+      <div class="steps reveal reveal-d1">
         <div class="step">
-          <div class="step-num">1</div>
+          <div class="step-num">01</div>
           <h3>We learn your ICP</h3>
-          <p>We get a clear picture of who your best customers are: their industry, company size, job title, and what they actually care about.</p>
+          <p>We get a precise picture of your best customers — their industry, company size, title, pain points, and buying signals.</p>
+          <div class="step-arrow">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2.917 7h8.166M7.583 3.5L11.083 7l-3.5 3.5"/>
+            </svg>
+          </div>
         </div>
         <div class="step">
-          <div class="step-num">2</div>
-          <h3>We find and verify leads</h3>
-          <p>We build and verify a list of real prospects that match your ideal customer.</p>
+          <div class="step-num">02</div>
+          <h3>We build the lead list</h3>
+          <p>We source and verify a curated list of real decision-makers that match your ICP exactly. No recycled contacts.</p>
+          <div class="step-arrow">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2.917 7h8.166M7.583 3.5L11.083 7l-3.5 3.5"/>
+            </svg>
+          </div>
         </div>
         <div class="step">
-          <div class="step-num">3</div>
-          <h3>We run personalized outreach</h3>
-          <p>We write and send personalized outreach on your behalf across email and LinkedIn.</p>
+          <div class="step-num">03</div>
+          <h3>We run the outreach</h3>
+          <p>We write and send personalized sequences across email and LinkedIn on your behalf — and manage all follow-ups.</p>
+          <div class="step-arrow">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2.917 7h8.166M7.583 3.5L11.083 7l-3.5 3.5"/>
+            </svg>
+          </div>
         </div>
         <div class="step">
-          <div class="step-num">4</div>
+          <div class="step-num">04</div>
           <h3>Calls land on your calendar</h3>
-          <p>When someone is interested they book directly onto your calendar. You show up, run the call and close the deal.</p>
+          <p>Interested prospects book directly through your scheduling link. You show up, run the call, and close.</p>
+          <div class="step-arrow">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2.917 7h8.166M7.583 3.5L11.083 7l-3.5 3.5"/>
+            </svg>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ── What You Get ── -->
-  <section id="what-you-get">
-    <div class="container fade-in">
-      <p class="section-label">What you get</p>
-      <h2>Everything needed to fill your calendar</h2>
-      <p class="section-desc">
-        You get a complete, done-for-you outreach operation. No tools to buy, no copywriting to do, no follow ups to manage.
-      </p>
-      <div class="deliverables-grid">
+  <!-- ── WHAT YOU GET ───────────────────────────── -->
+  <section class="section section-alt" id="what-you-get">
+    <div class="container">
+      <div class="section-header reveal">
+        <div class="section-header-left">
+          <div class="label" style="margin-bottom:18px;">What you get</div>
+          <h2>A complete, done-for-you<br>outreach <em>operation</em></h2>
+        </div>
+        <p class="section-desc">
+          No tools to set up, no copy to write, no sequences
+          to manage. We handle everything — you focus on closing.
+        </p>
+      </div>
 
-        <div class="del-card">
-          <div class="del-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
-              <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
-              <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
-            </svg>
-          </div>
+      <div class="deliverables reveal reveal-d1">
+        <div class="del">
+          <div class="del-num">01</div>
           <h3>Verified leads in your ICP</h3>
-          <p>Fresh, verified prospect lists built specifically around your ideal customer. No recycled contacts.</p>
+          <p>Fresh, verified prospect lists built specifically around your ideal customer. Every contact checked before we touch it.</p>
         </div>
-
-        <div class="del-card">
-          <div class="del-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-          </div>
-          <h3>Personalized outreach</h3>
-          <p>We write and send tailored sequences via email and LinkedIn on your behalf.</p>
+        <div class="del">
+          <div class="del-num">02</div>
+          <h3>Personalized outreach copy</h3>
+          <p>We write tailored, human-sounding sequences for email and LinkedIn — no spam, no templates, no filler.</p>
         </div>
-
-        <div class="del-card">
-          <div class="del-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-          </div>
-          <h3>Calls booked on your calendar</h3>
-          <p>Interested prospects book directly through your scheduling link. You just show up.</p>
+        <div class="del">
+          <div class="del-num">03</div>
+          <h3>Booked calls on your calendar</h3>
+          <p>Interested prospects book directly through your scheduling link. You just show up. We handled the rest.</p>
         </div>
-
-        <div class="del-card">
-          <div class="del-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="20" x2="18" y2="10"/>
-              <line x1="12" y1="20" x2="12" y2="4"/>
-              <line x1="6" y1="20" x2="6" y2="14"/>
-            </svg>
-          </div>
-          <h3>Weekly reporting</h3>
-          <p>You get a clear breakdown every week: leads contacted, reply rates, calls booked, and what we are testing.</p>
+        <div class="del">
+          <div class="del-num">04</div>
+          <h3>Weekly performance reports</h3>
+          <p>Every week: leads contacted, reply rates, calls booked, and what we're testing next. Full transparency.</p>
         </div>
-
       </div>
     </div>
   </section>
 
-  <!-- ── Who It's For ── -->
-  <section id="who-its-for">
-    <div class="container fade-in">
-      <div class="split">
-        <div>
-          <p class="section-label">Who this is for</p>
-          <h2>Built for B2B service businesses</h2>
-          <p class="section-desc">
-            If you sell a service to other businesses and need a steady stream of qualified calls coming in, this was built for you.
+  <!-- ── WHO IT'S FOR ───────────────────────────── -->
+  <section class="section" id="who-its-for">
+    <div class="container">
+      <div class="for-split">
+        <div class="reveal">
+          <div class="label" style="margin-bottom:18px;">Who this is for</div>
+          <h2>Built for B2B service <em>businesses</em></h2>
+          <p class="section-desc" style="margin-top:16px;">
+            If you sell a high-ticket service to other businesses
+            and need a consistent pipeline of qualified calls, this
+            was designed specifically for you.
           </p>
         </div>
-        <div>
-          <ul class="client-list">
-            <li>Marketing agencies</li>
-            <li>Ad agencies</li>
-            <li>Consulting firms</li>
-            <li>Coaching businesses</li>
-            <li>Recruiting agencies</li>
-            <li>PR agencies</li>
-            <li>B2B service businesses</li>
-          </ul>
+        <div class="reveal reveal-d1">
+          <div class="clients">
+            <div class="client-row">
+              Marketing agencies
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2.917 7h8.166M7.583 3.5L11.083 7l-3.5 3.5"/>
+              </svg>
+            </div>
+            <div class="client-row">
+              Ad agencies
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2.917 7h8.166M7.583 3.5L11.083 7l-3.5 3.5"/>
+              </svg>
+            </div>
+            <div class="client-row">
+              Consulting firms
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2.917 7h8.166M7.583 3.5L11.083 7l-3.5 3.5"/>
+              </svg>
+            </div>
+            <div class="client-row">
+              Coaching businesses
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2.917 7h8.166M7.583 3.5L11.083 7l-3.5 3.5"/>
+              </svg>
+            </div>
+            <div class="client-row">
+              Recruiting agencies
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2.917 7h8.166M7.583 3.5L11.083 7l-3.5 3.5"/>
+              </svg>
+            </div>
+            <div class="client-row">
+              PR &amp; communications agencies
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2.917 7h8.166M7.583 3.5L11.083 7l-3.5 3.5"/>
+              </svg>
+            </div>
+            <div class="client-row">
+              B2B SaaS &amp; software
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2.917 7h8.166M7.583 3.5L11.083 7l-3.5 3.5"/>
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ── The Offer ── -->
-  <section id="the-offer" class="offer-section">
-    <div class="container fade-in">
-      <p class="section-label">The offer</p>
-      <h2>You pay for results. Nothing else.</h2>
-      <div class="offer-cards">
-        <div class="offer-card">
+  <!-- ── THE OFFER ──────────────────────────────── -->
+  <section class="section section-alt" id="the-offer">
+    <div class="container">
+      <div class="section-header reveal">
+        <div class="section-header-left">
+          <div class="label" style="margin-bottom:18px;">The offer</div>
+          <h2>You pay for results.<br><em>Nothing else.</em></h2>
+        </div>
+        <p class="section-desc">
+          No retainers, no long-term contracts, no monthly
+          minimums. If we stop delivering calls, you stop paying.
+          That's the whole arrangement.
+        </p>
+      </div>
+
+      <div class="offer-grid reveal reveal-d1">
+        <div class="offer-card featured">
+          <div class="offer-card-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
           <h3>Pay per booked call</h3>
-          <p>You only pay when a real prospect books a call on your calendar. That is the whole deal.</p>
+          <p>You only pay when a real, qualified prospect books a call on your calendar. That is the entire deal. No call, no charge.</p>
         </div>
         <div class="offer-card">
+          <div class="offer-card-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2"/>
+              <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+              <line x1="12" y1="12" x2="12" y2="16"/>
+              <line x1="10" y1="14" x2="14" y2="14"/>
+            </svg>
+          </div>
           <h3>No retainers</h3>
-          <p>No monthly fees, no long term contracts. If we stop delivering you stop paying. Simple as that.</p>
+          <p>No monthly fees, no long-term commitments, no contracts. If we stop delivering, you stop paying. Clean and simple.</p>
         </div>
         <div class="offer-card">
+          <div class="offer-card-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
           <h3>Fully managed</h3>
-          <p>We take care of the leads, the copy, the sequences and the follow ups. You just show up for the calls.</p>
+          <p>We own the entire process — lead research, copy, sequences, follow-ups. You just show up for the calls and close.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ── FAQ ── -->
-  <section id="faq">
-    <div class="container fade-in">
-      <p class="section-label">Questions</p>
-      <h2>A few things people ask us</h2>
-      <div class="faq-list">
+  <!-- ── TESTIMONIAL ────────────────────────────── -->
+  <section class="testimonial-section">
+    <div class="container">
+      <div class="testimonial-inner reveal">
+        <div class="quote-mark">"</div>
+        <p class="quote-text">
+          Within the first two weeks, we had six qualified calls on the calendar.
+          The quality of the leads was unlike anything we'd seen from other
+          outreach partners — these were real decision-makers who already
+          understood our offer.
+        </p>
+        <div class="quote-author">
+          <div class="quote-avatar"></div>
+          <div class="quote-meta">
+            <span class="quote-name">James Whitfield</span>
+            <span class="quote-role">Founder, Axon Growth Partners</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FAQ ───────────────────────────────────── -->
+  <section class="section" id="faq">
+    <div class="container">
+      <div class="reveal">
+        <div class="label" style="margin-bottom:18px;">Questions</div>
+        <h2>A few things<br>people ask us</h2>
+      </div>
+      <div class="faq-list reveal reveal-d1">
 
         <details class="faq-item">
           <summary>
-            How do you find leads?
+            How do you find and verify leads?
             <span class="faq-toggle">+</span>
           </summary>
-          <p class="faq-body">We use Apollo, LinkedIn Sales Navigator, Clay, and other tools to build verified lead lists matched to your exact ideal customer profile. Every contact is verified before we reach out.</p>
+          <p class="faq-body">We use Apollo, LinkedIn Sales Navigator, Clay, and other professional tools to source and verify leads matched to your exact ICP. Every contact is verified before we start outreach — we do not work with unverified or recycled lists.</p>
         </details>
 
         <details class="faq-item">
@@ -843,7 +1316,7 @@
             How long until I see results?
             <span class="faq-toggle">+</span>
           </summary>
-          <p class="faq-body">Most clients see their first booked calls within two to three weeks of starting. The first week we spend onboarding and building your lead list. Outreach goes live in the second week.</p>
+          <p class="faq-body">Most clients see their first booked calls within 14 days of starting. Week one is onboarding and list-building. Outreach goes live in week two. The pipeline compounds from there as we optimize.</p>
         </details>
 
         <details class="faq-item">
@@ -851,7 +1324,7 @@
             What industries do you work with?
             <span class="faq-toggle">+</span>
           </summary>
-          <p class="faq-body">We work with marketing agencies, ad agencies, consulting firms, coaching businesses, recruiting agencies, PR agencies, and other B2B service providers. If you sell a service to businesses, we can likely help.</p>
+          <p class="faq-body">We work with marketing agencies, ad agencies, consulting firms, coaching businesses, recruiting agencies, PR agencies, B2B SaaS companies, and other professional service businesses. If you sell a high-ticket service to other businesses, we can likely help.</p>
         </details>
 
         <details class="faq-item">
@@ -859,63 +1332,112 @@
             How does billing work?
             <span class="faq-toggle">+</span>
           </summary>
-          <p class="faq-body">We charge a flat fee per qualified call that lands on your calendar. There are no monthly fees and no retainers. Pricing details are discussed on your onboarding call since they vary by industry and volume.</p>
+          <p class="faq-body">We charge a flat fee per qualified call booked on your calendar. No retainers, no monthly minimums. Pricing is discussed on your strategy call since it varies by industry, call volume, and campaign scope.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>
+            What do I need to provide?
+            <span class="faq-toggle">+</span>
+          </summary>
+          <p class="faq-body">Very little. We need about 60 minutes for onboarding to understand your ICP, offer, and tone. After that, we handle everything. You'll review outreach copy before it goes live, and then you just manage your calendar.</p>
         </details>
 
       </div>
     </div>
   </section>
 
-  <!-- ── Final CTA ── -->
+  <!-- ── FINAL CTA ──────────────────────────────── -->
   <section class="cta-section">
-    <div class="container fade-in">
-      <span class="eyebrow">Ready to grow?</span>
-      <h2>Start getting sales calls on your calendar</h2>
-      <p class="section-desc">
-        Get on a short call with our team. We will learn about your business and figure out if we are a good fit.
-      </p>
-      <a href="https://calendly.com/izuchukwugodswill/quick-chat-with-izuu" target="_blank" rel="noopener" class="btn-primary">
-        Book a call &rarr;
-      </a>
+    <div class="cta-mesh" aria-hidden="true"></div>
+    <div class="container">
+      <div class="cta-content reveal">
+        <div class="label" style="margin-bottom:24px;justify-content:center;">Ready to grow?</div>
+        <h2>Start getting qualified<br>calls on your calendar.</h2>
+        <p class="cta-sub">
+          Book a short strategy call. We'll learn about your business,
+          tell you exactly what we'd do — and whether we're a good fit.
+        </p>
+        <div class="cta-actions">
+          <a href="https://calendly.com/izuchukwugodswill/quick-chat-with-izuu" target="_blank" rel="noopener" class="btn-gold">
+            Book a free strategy call
+          </a>
+        </div>
+        <p class="cta-note">No commitment · 30 minutes · Results within 14 days</p>
+      </div>
     </div>
   </section>
 
-  <!-- ── Footer ── -->
+  <!-- ── FOOTER ─────────────────────────────────── -->
   <footer>
     <div class="container">
-      <div class="footer-inner">
-        <div class="footer-logo">TenthMark</div>
-        <span class="footer-copy">&copy; 2025 TenthMark</span>
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="logo-f">Tenth<span>Mark</span></div>
+          <p>B2B lead generation on a pure performance model. You pay only when qualified calls land on your calendar.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Services</h4>
+          <ul>
+            <li><a href="#how-it-works">How it works</a></li>
+            <li><a href="#what-you-get">What you get</a></li>
+            <li><a href="#the-offer">Pricing</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <ul>
+            <li><a href="#who-its-for">Who we help</a></li>
+            <li><a href="#faq">FAQ</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Contact</h4>
+          <ul>
+            <li><a href="https://calendly.com/izuchukwugodswill/quick-chat-with-izuu" target="_blank" rel="noopener">Book a call</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span class="footer-copy">&copy; 2025 TenthMark. All rights reserved.</span>
+        <span class="footer-copy">B2B lead generation, done right.</span>
       </div>
     </div>
   </footer>
 
   <script>
     /* ── Word rotation ── */
-    const words = ['calls', 'appointments', 'consultations', 'opportunities', 'meetings', 'demos'];
-    let wIndex = 0;
+    const words = ['calls', 'appointments', 'meetings', 'opportunities', 'consultations', 'demos'];
+    let wIdx = 0;
     const wEl = document.getElementById('rotateWord');
 
-    function rotateWord() {
+    function rotate() {
       wEl.classList.remove('is-entering');
       wEl.classList.add('is-leaving');
       setTimeout(() => {
-        wIndex = (wIndex + 1) % words.length;
-        wEl.textContent = words[wIndex];
+        wIdx = (wIdx + 1) % words.length;
+        wEl.textContent = words[wIdx];
         wEl.classList.remove('is-leaving');
         wEl.classList.add('is-entering');
-      }, 300);
+      }, 320);
     }
-    setInterval(rotateWord, 2500);
+    setInterval(rotate, 2600);
 
-    /* ── Intersection Observer for fade-in ── */
+    /* ── Nav scroll state ── */
+    const navEl = document.getElementById('nav');
+    const onScroll = () => {
+      if (window.scrollY > 60) navEl.classList.add('scrolled');
+      else navEl.classList.remove('scrolled');
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    /* ── Reveal on scroll ── */
+    document.body.classList.add('js-ready');
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) entry.target.classList.add('visible');
-      });
-    }, { threshold: 0.12 });
-
-    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
   </script>
 
 </body>

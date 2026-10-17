@@ -183,6 +183,22 @@
   .proof-cell.feature{background:radial-gradient(120% 100% at 0% 100%,rgba(91,124,255,.22),transparent 60%);}
   .icon-badge{width:48px;height:48px;border-radius:14px;border:1px solid var(--line-2);display:grid;place-items:center;color:var(--accent-2);}
 
+
+  /* ---------- TRACK RECORD ---------- */
+  #record{padding-top:clamp(40px,6vw,80px);}
+  .record{display:grid;grid-template-columns:1.5fr 1fr;gap:20px;}
+  .record-card{border:1px solid var(--line);border-radius:28px;background:var(--bg-2);padding:clamp(28px,3.4vw,48px);}
+  .record-card.creds{background:radial-gradient(120% 100% at 100% 0%,rgba(91,124,255,.18),transparent 60%),var(--bg-2);}
+  .record-card .mono{display:block;margin-bottom:26px;}
+  .ticks{list-style:none;}
+  .ticks li{position:relative;padding:20px 0 20px 40px;border-top:1px solid var(--line);font-size:clamp(1.05rem,1.35vw,1.22rem);line-height:1.5;letter-spacing:-.01em;}
+  .ticks li:first-child{border-top:none;padding-top:0;}
+  .ticks li::before{content:'';position:absolute;left:0;top:23px;width:22px;height:22px;border-radius:50%;
+    background:rgba(91,124,255,.16) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239db0ff' stroke-width='3'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/12px no-repeat;
+    border:1px solid rgba(157,176,255,.35);}
+  .ticks li:first-child::before{top:3px;}
+  @media (max-width:820px){.record{grid-template-columns:1fr;}}
+
   /* ---------- ABOUT ---------- */
   .about{display:grid;grid-template-columns:.8fr 1.2fr;gap:clamp(40px,7vw,110px);align-items:start;}
   .portrait-wrap{position:sticky;top:120px;max-width:340px;}
@@ -308,6 +324,7 @@
   <a href="#top" class="logo"><span class="logo-mark">i</span>Izuu</a>
   <div class="nav-links">
     <a href="#proof">Results</a>
+    <a href="#record">Track record</a>
     <a href="#about">About</a>
     <a href="#work">Work</a>
     <a href="#process">Process</a>
@@ -385,6 +402,36 @@
   </div>
 </section>
 
+<!-- TRACK RECORD -->
+<section id="record">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="mono reveal">(02) Track record</span>
+      <h2 class="reveal">The <em>proof,</em> line by line.</h2>
+    </div>
+    <div class="record">
+      <div class="record-card reveal">
+        <span class="mono">Results</span>
+        <ul class="ticks">
+          <li>I rebuilt a sales team's outreach from scratch. It drove the majority of their booked calls, with a 30% call to close rate across 50+ active accounts.</li>
+          <li>My outreach templates were adopted by the entire SDR team of a $34 million company.</li>
+          <li>And recently, I generated $56,000 in just 90 days for another company I worked with.</li>
+          <li>The companies I've worked with collectively generate $2M/mo, and these include companies in Y Combinator and a creator with over 150K followers.</li>
+          <li>I've worked with a YC backed AI company ($6.2M seed), a Sequoia backed EdTech platform ($34M, 80+ countries), and a creator business with over 150K followers.</li>
+        </ul>
+      </div>
+      <div class="record-card creds reveal">
+        <span class="mono">Tools and credentials</span>
+        <ul class="ticks">
+          <li>I'm part of n8n's creator program.</li>
+          <li>I know Make well.</li>
+          <li>I'm HubSpot certified in Inbound.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ABOUT -->
 <section id="about">
   <div class="wrap">
@@ -398,7 +445,7 @@
       </div>
 
       <div class="about-body">
-        <span class="mono reveal" style="display:block;margin-bottom:28px">(02) About</span>
+        <span class="mono reveal" style="display:block;margin-bottom:28px">(03) About</span>
         <p class="lead reveal">Somewhere in almost every business, there are <em>two or three hours a day</em> being spent on things a well built system could handle in seconds. I find those hours and I build the system.</p>
         <p class="copy reveal">So far that has meant outreach pipelines, agentic lead qualification, speed to lead systems, content engines and proposal generators. The technology changes depending on the problem.</p>
         <p class="copy reveal">The goal is always the same: less manual work, more output, and nothing falling through the cracks.</p>
@@ -418,7 +465,7 @@
 <section id="work">
   <div class="wrap">
     <div class="sec-head">
-      <span class="mono reveal">(03) Selected work</span>
+      <span class="mono reveal">(04) Selected work</span>
       <h2 class="reveal">System <em>builds</em></h2>
     </div>
 
@@ -510,7 +557,7 @@
 <section id="process" class="process">
   <div class="wrap">
     <div class="sec-head">
-      <span class="mono reveal">(04) How I work</span>
+      <span class="mono reveal">(05) How I work</span>
       <h2 class="reveal">Find the hours. <em>Build the system.</em></h2>
     </div>
     <div class="steps">
@@ -534,7 +581,7 @@
 <section id="contact" class="cta">
   <div class="cta-glow"></div>
   <div class="wrap">
-    <span class="mono reveal">(05) Contact</span>
+    <span class="mono reveal">(06) Contact</span>
     <h2 class="reveal">Let's build<br><em>something.</em></h2>
     <p class="reveal">Open to freelance projects, contractor roles and interesting problems. Available remotely, worldwide.</p>
     <div class="cta-actions reveal">

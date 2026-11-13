@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Izuu | Sales and Marketing Specialist</title>
+<meta name="description" content="Izuchukwu Okafor, sales and marketing specialist: cold calling, cold email and LinkedIn outreach that turns cold prospects into booked calls and closed deals.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070708;
+    --bg-2:#0d0d0f;
+    --bg-3:#141417;
+    --ink:#f3f1ec;
+    --ink-2:#a9a7a2;
+    --ink-3:#6b6a67;
+    --line:rgba(243,241,236,0.09);
+    --line-2:rgba(243,241,236,0.16);
+    --accent:#5b7cff;
+    --accent-2:#9db0ff;
+    --ease:cubic-bezier(.16,1,.3,1);
+    --serif:'Instrument Serif', Georgia, serif;
+    --sans:'Inter Tight', system-ui, sans-serif;
+    --mono:'JetBrains Mono', ui-monospace, monospace;
+    --gutter:clamp(20px, 5vw, 72px);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-weight:400;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  a{color:inherit;text-decoration:none;}
+  img{max-width:100%;display:block;}
+  ::selection{background:var(--accent);color:#fff;}
+  em{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:-0.01em;}
+
+
+  .wrap{max-width:1320px;margin:0 auto;padding:0 var(--gutter);}
+  .mono{font-family:var(--mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);}
+
+  /* ---------- NAV ---------- */
+  nav{
+    position:fixed;top:14px;left:50%;transform:translateX(-50%);
+    z-index:100;width:min(1180px, calc(100% - 28px));
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 10px 10px 22px;border-radius:100px;
+    border:1px solid transparent;
+    transition:background .5s var(--ease), border-color .5s var(--ease), backdrop-filter .5s var(--ease);
+  }
+  nav.scrolled{
+    background:rgba(13,13,15,.72);
+    border-color:var(--line);
+    backdrop-filter:blur(18px) saturate(140%);
+    -webkit-backdrop-filter:blur(18px) saturate(140%);
+  }
+  .logo{font-weight:600;font-size:1.05rem;letter-spacing:-.02em;display:flex;align-items:center;gap:10px;}
+  .logo-mark{
+    width:26px;height:26px;border-radius:8px;display:grid;place-items:center;
+    background:linear-gradient(140deg,var(--accent),#2b3fb8);
+    font-family:var(--serif);font-style:italic;font-size:1rem;color:#fff;
+  }
+  .nav-links{display:flex;gap:34px;font-size:.9rem;color:var(--ink-2);}
+  .nav-links a{transition:color .3s ease;}
+  .nav-links a:hover{color:var(--ink);}
+
+  /* ---------- BUTTONS ---------- */
+  .btn{
+    position:relative;display:inline-flex;align-items:center;gap:12px;
+    padding:15px 26px;border-radius:100px;font-size:.95rem;font-weight:500;
+    border:1px solid var(--line-2);overflow:hidden;isolation:isolate;
+    transition:border-color .4s var(--ease), color .4s var(--ease), transform .4s var(--ease);
+    will-change:transform;
+  }
+  .btn .arrow{
+    width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+    background:var(--ink);color:var(--bg);transition:transform .5s var(--ease);
+  }
+  .btn:hover .arrow{transform:rotate(-45deg);}
+  .btn-light{background:var(--ink);color:var(--bg);border-color:var(--ink);padding:8px 8px 8px 24px;}
+  .btn-light .arrow{background:var(--bg);color:var(--ink);width:38px;height:38px;}
+  .btn-light::before{
+    content:'';position:absolute;inset:0;z-index:-1;background:var(--accent);
+    transform:translateY(101%);transition:transform .5s var(--ease);border-radius:inherit;
+  }
+  .btn-light:hover{color:#fff;border-color:var(--accent);}
+  .btn-light:hover::before{transform:translateY(0);}
+  .btn-ghost:hover{border-color:var(--ink);}
+  .btn-sm{padding:6px 6px 6px 18px;font-size:.86rem;}
+  .btn-sm .arrow{width:30px;height:30px;}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative;min-height:100svh;display:flex;flex-direction:column;justify-content:flex-end;
+    padding:140px 0 56px;overflow:hidden;
+  }
+  .hero-glow{
+    position:absolute;pointer-events:none;border-radius:50%;filter:blur(120px);
+  }
+  .hero-glow.g1{width:60vw;height:60vw;max-width:900px;max-height:900px;top:-30%;right:-15%;
+    background:radial-gradient(circle,rgba(91,124,255,.32),transparent 65%);animation:drift 24s ease-in-out infinite;}
+  .hero-glow.g2{width:40vw;height:40vw;max-width:600px;max-height:600px;bottom:-20%;left:-10%;
+    background:radial-gradient(circle,rgba(157,176,255,.14),transparent 65%);animation:drift 30s ease-in-out infinite reverse;}
+  @keyframes drift{0%,100%{transform:translate(0,0)}50%{transform:translate(-6%,8%)}}
+  .hero-grid{
+    position:absolute;inset:0;pointer-events:none;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:88px 88px;opacity:.35;
+    mask-image:radial-gradient(ellipse 70% 60% at 60% 30%,#000 20%,transparent 75%);
+    -webkit-mask-image:radial-gradient(ellipse 70% 60% at 60% 30%,#000 20%,transparent 75%);
+  }
+  .hero .wrap{position:relative;z-index:2;width:100%;}
+  .status{
+    display:inline-flex;align-items:center;gap:10px;padding:8px 16px 8px 12px;border-radius:100px;
+    border:1px solid var(--line-2);background:rgba(243,241,236,.03);font-size:.84rem;color:var(--ink-2);
+    margin-bottom:36px;
+  }
+  .status .dot{width:8px;height:8px;border-radius:50%;background:#3ddc84;position:relative;}
+  .status .dot::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1px solid #3ddc84;animation:ping 2s var(--ease) infinite;}
+  @keyframes ping{0%{transform:scale(.6);opacity:1}100%{transform:scale(2);opacity:0}}
+  .status b{color:var(--ink);font-weight:500;}
+
+  .hero h1{
+    font-size:clamp(3.1rem, 10.4vw, 10.5rem);
+    font-weight:500;line-height:.92;letter-spacing:-.055em;
+  }
+  .hero h1 em{letter-spacing:-.03em;color:var(--accent-2);}
+  .line{display:block;overflow:hidden;padding-bottom:.08em;}
+  .line > span{display:inline-block;transform:translateY(110%);transition:transform 1.2s var(--ease);}
+  .loaded .line > span{transform:translateY(0);}
+  .line:nth-child(2) > span{transition-delay:.09s;}
+  .line:nth-child(3) > span{transition-delay:.18s;}
+
+  .hero-foot{
+    margin-top:56px;display:grid;grid-template-columns:1.1fr 1fr auto;gap:40px;align-items:end;
+    padding-top:32px;border-top:1px solid var(--line);
+  }
+  .hero-foot p{font-size:clamp(1rem,1.3vw,1.18rem);line-height:1.55;color:var(--ink-2);max-width:40ch;}
+  .hero-foot p strong{color:var(--ink);font-weight:500;}
+  .hero-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end;}
+  .hero-stat{display:flex;gap:18px;align-items:center;}
+  .hero-stat .big{font-size:clamp(2.4rem,4vw,3.6rem);font-weight:500;letter-spacing:-.04em;line-height:1;white-space:nowrap;}
+  .hero-stat .big sup{font-size:.5em;line-height:0;vertical-align:.75em;margin-left:.06em;color:var(--accent-2);letter-spacing:0;}
+  .hero-stat .small{font-size:.9rem;color:var(--ink-2);line-height:1.45;max-width:24ch;}
+  .fade-up{opacity:0;transform:translateY(24px);transition:opacity 1s var(--ease) .5s, transform 1s var(--ease) .5s;}
+  .loaded .fade-up{opacity:1;transform:none;}
+
+
+  /* ---------- SECTIONS ---------- */
+  section{position:relative;padding:clamp(100px,14vw,180px) 0;}
+  #proof{padding-top:clamp(24px,3vw,40px);padding-bottom:clamp(40px,5vw,64px);}
+  #about{padding-top:clamp(40px,5vw,64px);}
+  .sec-head{display:grid;grid-template-columns:220px 1fr;gap:40px;margin-bottom:clamp(56px,7vw,96px);}
+  .sec-head h2{font-size:clamp(2.3rem,5.4vw,4.8rem);font-weight:500;letter-spacing:-.045em;line-height:1;max-width:16ch;}
+  .sec-head h2 em{color:var(--accent-2);}
+
+  .reveal{opacity:0;transform:translateY(40px);transition:opacity 1.1s var(--ease), transform 1.1s var(--ease);}
+  .reveal.in{opacity:1;transform:none;}
+
+  /* ---------- PROOF ---------- */
+  .proof-quote{
+    font-size:clamp(1.9rem,4.3vw,3.9rem);font-weight:400;letter-spacing:-.035em;line-height:1.12;
+    max-width:24ch;
+  }
+  .proof-quote .w{opacity:.14;transition:opacity .5s ease;}
+  .proof-quote .w.on{opacity:1;}
+  .proof-quote em{color:var(--accent-2);}
+  .proof-list{list-style:none;margin:clamp(48px,6vw,80px) 0 0 260px;border-top:1px solid var(--line);}
+  .proof-list li{display:grid;grid-template-columns:56px 1fr;gap:20px;align-items:center;padding:26px 0;border-bottom:1px solid var(--line);
+    font-size:clamp(1.1rem,1.6vw,1.4rem);line-height:1.45;letter-spacing:-.015em;text-wrap:pretty;}
+  .proof-list li{color:var(--ink-2);}
+  .proof-list li strong{color:var(--ink);font-weight:600;}
+  .proof-list .pl{color:var(--accent-2);border-bottom:1px solid rgba(157,176,255,.35);padding-bottom:1px;white-space:nowrap;transition:color .3s,border-color .3s;}
+  .proof-list .pl:hover{color:var(--ink);border-color:var(--ink);}
+  .proof-list .ic{width:44px;height:44px;border-radius:13px;border:1px solid var(--line-2);display:grid;place-items:center;color:var(--accent-2);background:rgba(91,124,255,.06);}
+
+  /* ---------- ABOUT ---------- */
+  .about{display:grid;grid-template-columns:.8fr 1.2fr;gap:clamp(40px,7vw,110px);align-items:start;}
+  .portrait-wrap{position:sticky;top:120px;max-width:340px;}
+  .portrait{
+    position:relative;border-radius:50%;overflow:hidden;aspect-ratio:1;background:var(--bg-3);
+    box-shadow:0 0 0 1px var(--line-2),0 0 0 10px var(--bg),0 0 0 11px rgba(91,124,255,.35),0 30px 80px -20px rgba(91,124,255,.35);
+  }
+  .portrait img{width:100%;height:100%;object-fit:cover;}
+  .portrait .fallback{position:absolute;inset:0;display:none;place-items:center;font-family:var(--serif);font-style:italic;font-size:9rem;color:var(--ink-3);
+    background:radial-gradient(circle at 30% 20%,rgba(91,124,255,.25),transparent 60%),var(--bg-3);}
+  .portrait.noimg .fallback{display:grid;}
+  .portrait-wrap .tag{margin-top:36px;display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:12px 16px;border-radius:14px;background:var(--bg-2);border:1px solid var(--line);font-size:.86rem;}
+  .portrait-wrap .tag span:last-child{color:var(--ink-2);}
+  .about-body .lead{font-size:clamp(1.6rem,2.8vw,2.5rem);font-weight:400;letter-spacing:-.03em;line-height:1.2;margin-bottom:40px;}
+  .about-body .lead em{color:var(--accent-2);}
+  .about-body p.copy{font-size:1.1rem;line-height:1.75;color:var(--ink-2);max-width:54ch;margin-bottom:22px;}
+  .caps{margin-top:56px;display:grid;grid-template-columns:repeat(2,1fr);border-top:1px solid var(--line);}
+  .caps div{padding:22px 0;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:baseline;font-size:1.05rem;}
+  .caps div:nth-child(odd){padding-right:24px;}
+  .caps div:nth-child(even){padding-left:24px;border-left:1px solid var(--line);}
+  .caps .mono{color:var(--accent-2);}
+
+  /* ---------- WORK ---------- */
+  .work-list{border-top:1px solid var(--line);}
+  .row{
+    position:relative;display:grid;grid-template-columns:80px 1.3fr 1fr 150px;gap:32px;align-items:center;
+    padding:40px 0;border-bottom:1px solid var(--line);isolation:isolate;
+  }
+  .row::before{
+    content:'';position:absolute;inset:0 calc(var(--gutter) * -1);z-index:-1;
+    background:radial-gradient(600px circle at var(--mx,50%) var(--my,50%),rgba(91,124,255,.14),transparent 50%);
+    opacity:0;transition:opacity .5s ease;
+  }
+  .row:hover::before{opacity:1;}
+  .row .idx{font-family:var(--mono);font-size:.8rem;color:var(--ink-3);}
+  .row h3{font-size:clamp(1.6rem,3vw,2.7rem);font-weight:500;letter-spacing:-.04em;line-height:1.02;transition:transform .6s var(--ease), color .4s ease;}
+  .row:hover h3{transform:translateX(12px);}
+  .row h3 em{color:var(--accent-2);}
+  .row .desc{color:var(--ink-2);font-size:.98rem;line-height:1.6;}
+  .row .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px;}
+  .row .tags span{font-family:var(--mono);font-size:.68rem;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);border:1px solid var(--line-2);padding:5px 10px;border-radius:100px;}
+  .row .metric{text-align:right;}
+  .row .metric b{display:block;font-size:clamp(1.8rem,2.8vw,2.6rem);font-weight:500;letter-spacing:-.04em;line-height:1;}
+  .row .metric small{display:block;margin-top:6px;font-size:.8rem;color:var(--ink-3);}
+  .row .watch{
+    display:inline-flex;align-items:center;gap:8px;margin-top:14px;font-size:.84rem;color:var(--ink);
+    padding:8px 14px;border-radius:100px;border:1px solid var(--line-2);transition:background .4s var(--ease), color .4s var(--ease), border-color .4s;
+  }
+  .row .watch:hover{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+  .row .watch svg{transition:transform .4s var(--ease);}
+  .row .watch:hover svg{transform:translateX(3px);}
+  .row-link{position:absolute;inset:0;z-index:1;}
+  .row .watch{position:relative;z-index:2;}
+
+  /* ---------- PROCESS ---------- */
+  .process{background:var(--bg-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  .step{
+    border:1px solid var(--line);border-radius:24px;padding:36px;min-height:340px;display:flex;flex-direction:column;justify-content:space-between;
+    background:var(--bg);transition:border-color .5s ease, transform .6s var(--ease);position:relative;overflow:hidden;
+  }
+  .step:hover{border-color:var(--line-2);transform:translateY(-6px);}
+  .step .n{font-family:var(--serif);font-style:italic;font-size:5.5rem;line-height:.8;color:var(--accent-2);opacity:.9;}
+  .step h3{font-size:1.6rem;font-weight:500;letter-spacing:-.03em;margin-bottom:12px;}
+  .step p{color:var(--ink-2);line-height:1.6;font-size:.98rem;}
+
+  /* ---------- CTA ---------- */
+  .cta{text-align:center;overflow:hidden;padding:clamp(120px,16vw,220px) 0 clamp(80px,10vw,140px);}
+  .cta-glow{position:absolute;left:50%;bottom:-40%;transform:translateX(-50%);width:120vw;height:80vw;max-height:1100px;
+    background:radial-gradient(closest-side,rgba(91,124,255,.28),transparent);pointer-events:none;}
+  .cta .mono{display:block;margin-bottom:28px;}
+  .cta h2{font-size:clamp(3.4rem,12vw,12rem);font-weight:500;letter-spacing:-.06em;line-height:.9;position:relative;}
+  .cta h2 em{color:var(--accent-2);}
+  .cta p{color:var(--ink-2);font-size:1.15rem;max-width:44ch;margin:34px auto 44px;line-height:1.6;position:relative;}
+  .cta-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;position:relative;}
+  .cta-links{margin-top:64px;display:flex;gap:28px;justify-content:center;flex-wrap:wrap;position:relative;}
+  .cta-links a{color:var(--ink-2);font-size:.95rem;border-bottom:1px solid var(--line-2);padding-bottom:3px;transition:color .3s, border-color .3s;}
+  .cta-links a:hover{color:var(--ink);border-color:var(--ink);}
+
+  footer{border-top:1px solid var(--line);padding:28px 0;}
+  footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:.84rem;color:var(--ink-3);}
+
+
+  /* ---------- SALES PAGE EXTRAS ---------- */
+  .more{display:inline-flex;align-items:center;gap:8px;margin-top:36px;font-size:.95rem;color:var(--ink-2);border-bottom:1px solid var(--line-2);padding-bottom:3px;transition:color .3s,border-color .3s}
+  .more:hover{color:var(--ink);border-color:var(--ink)}
+  .toolkit{margin-top:clamp(48px,6vw,72px);display:grid;grid-template-columns:220px 1fr;gap:40px;align-items:start;padding-top:28px;border-top:1px solid var(--line)}
+  .toolkit div{display:flex;flex-wrap:wrap;gap:8px}
+  .toolkit div span{font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);border:1px solid var(--line-2);padding:7px 12px;border-radius:100px;background:var(--bg)}
+  @media (max-width:820px){.toolkit{grid-template-columns:1fr;gap:16px}}
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width:1024px){
+    .hero-foot{grid-template-columns:1fr 1fr;}
+    .hero-actions{grid-column:1 / -1;justify-content:flex-start;}
+    .row{grid-template-columns:56px 1fr 130px;}
+    .row .desc-wrap{grid-column:2 / -1;}
+  }
+  @media (max-width:820px){
+    .nav-links{display:none;}
+    .sec-head{grid-template-columns:1fr;gap:18px;}
+    .proof-list{margin-left:0;}
+    .proof-list li{grid-template-columns:44px 1fr;gap:16px;padding:22px 0;}
+    .about{grid-template-columns:1fr;}
+    .portrait-wrap{position:relative;top:0;max-width:300px;}
+    .steps{grid-template-columns:1fr;}
+    .step{min-height:260px;}
+  }
+  @media (max-width:640px){
+    .hero{padding-top:120px;}
+    .hero-foot{grid-template-columns:1fr;gap:28px;}
+    .row{grid-template-columns:1fr;gap:14px;padding:32px 0;}
+    .row .desc-wrap{grid-column:auto;}
+    .row .metric{text-align:left;display:flex;align-items:baseline;gap:10px;}
+    .row .metric small{margin:0;}
+    .caps{grid-template-columns:1fr;}
+    .caps div:nth-child(even){padding-left:0;border-left:none;}
+    .btn-light.hide-sm{display:none;}
+    .status-extra{display:none;}
+    .status{white-space:nowrap;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none !important;transition:none !important;}
+    .line > span,.fade-up,.reveal{transform:none;opacity:1;}
+    .proof-quote .w{opacity:1;}
+  }
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <a href="#top" class="logo"><span class="logo-mark">i</span>Izuu</a>
+  <div class="nav-links">
+    <a href="#proof">Results</a>
+    <a href="#about">About</a>
+    <a href="#work">Experience</a>
+    <a href="#process">Approach</a>
+  </div>
+  <a href="#contact" class="btn btn-light btn-sm">Get in touch
+    <span class="arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+  </a>
+</nav>
+
+<!-- HERO -->
+<header class="hero" id="top">
+  <div class="hero-grid"></div>
+  <div class="hero-glow g1"></div>
+  <div class="hero-glow g2"></div>
+
+  <div class="wrap">
+    <div class="status fade-up"><span class="dot"></span><b>Sales and Marketing Specialist</b> <span class="status-extra">· Open to new roles</span></div>
+    <h1>
+      <span class="line"><span>I turn cold</span></span>
+      <span class="line"><span>prospects into</span></span>
+      <span class="line"><span><em>booked calls.</em></span></span>
+    </h1>
+
+    <div class="hero-foot fade-up">
+      <p>Cold calling, cold email and LinkedIn outreach for B2B teams. <strong>I open the conversation, qualify the right accounts and carry them through to a closed deal.</strong></p>
+      <div class="hero-stat">
+        <span class="big">30%</span>
+        <span class="small">call to close rate across a pipeline of 50+ active accounts</span>
+      </div>
+      <div class="hero-actions">
+        <a href="#work" class="btn btn-light">See my track record
+          <span class="arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
+
+<!-- PROOF -->
+<section id="proof">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="mono reveal">(01) Results</span>
+      <p class="proof-quote" id="quote">Recently, I generated <em>$56,000 in just 90 days</em> for a company I worked with.</p>
+    </div>
+
+    <ul class="proof-list">
+      <li class="reveal"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7l8.5 6 8.5-6"/></svg></span><span>My outreach templates were adopted by the <strong>entire SDR team</strong> of a <strong>$34&nbsp;million&nbsp;company</strong>.</span></li>
+      <li class="reveal"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5c3.5 2.6 5 6.4 4.5 11l-2 2h-5l-2-2C7 8.9 8.5 5.1 12 2.5z"/><circle cx="12" cy="9.5" r="1.8"/><path d="M9.5 15.5L7 20M14.5 15.5L17 20"/></svg></span><span>I'm currently doing outbound as an SDR at <strong>Throxy</strong>, a <strong>Y&nbsp;Combinator</strong> backed agency.</span></li>
+      <li class="reveal"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><span>I raised <strong>discovery call bookings by 40%</strong> and cut lead qualification from <strong>2&nbsp;hours to 30&nbsp;minutes</strong>.</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="wrap">
+    <div class="about">
+      <div class="portrait-wrap reveal">
+        <div class="portrait" id="portrait">
+          <img src="/portfolio/avatar.jpg" width="600" height="600" alt="Izuchukwu Okafor" onerror="this.parentElement.classList.add('noimg');this.remove();">
+          <div class="fallback">Iz</div>
+        </div>
+        <div class="tag"><span>Izuchukwu Okafor</span><span>Remote, worldwide</span></div>
+      </div>
+
+      <div class="about-body">
+        <span class="mono reveal" style="display:block;margin-bottom:28px">(02) About</span>
+        <p class="lead reveal">Most deals are lost <em>before the first call.</em> The wrong accounts, a forgettable opener, a follow up that never comes. That is the part of the pipeline I am good at.</p>
+        <p class="copy reveal">I have spent two years in outbound and account management. I have cold called hard to reach buyers in manufacturing, logistics and supply chain at a Y Combinator backed agency, and owned a pipeline of 50+ active accounts at a $34M EdTech platform.</p>
+        <p class="copy reveal">I also build my own prospecting tools with AI, so I spend less time on lists and more time in real conversations with buyers.</p>
+
+        <div class="caps reveal">
+          <div><span class="mono">A</span>Cold calling</div>
+          <div><span class="mono">B</span>Cold email and LinkedIn</div>
+          <div><span class="mono">C</span>Lead qualification</div>
+          <div><span class="mono">D</span>Pipeline management</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EXPERIENCE -->
+<section id="work">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="mono reveal">(03) Experience</span>
+      <h2 class="reveal">Where I have <em>sold</em></h2>
+    </div>
+
+    <div class="work-list">
+
+      <article class="row reveal">
+        <span class="idx">01</span>
+        <h3>Throxy <em>(YC S25)</em></h3>
+        <div class="desc-wrap">
+          <p class="desc">Sales Development Representative. Cold calling campaigns across multiple client verticals on a parallel dialler, reaching decision makers in manufacturing, logistics and supply chain who are hard to reach through standard digital tools.</p>
+          <div class="tags"><span>Cold calling</span><span>Parallel dialler</span><span>ICP qualification</span></div>
+        </div>
+        <div class="metric"><b>Now</b><small>Sep 2026 to present</small></div>
+      </article>
+
+      <article class="row reveal">
+        <span class="idx">02</span>
+        <h3>Virtual <em>Internships</em></h3>
+        <div class="desc-wrap">
+          <p class="desc">Account Executive at a $34M EdTech platform. Owned a pipeline of 50+ active accounts for a global internship marketplace and wrote the outreach playbook the entire SDR team adopted.</p>
+          <div class="tags"><span>Pipeline management</span><span>Outreach playbooks</span><span>Closing</span></div>
+        </div>
+        <div class="metric"><b>$56K</b><small>added revenue in 90 days</small></div>
+      </article>
+
+      <article class="row reveal">
+        <span class="idx">03</span>
+        <h3>Faceskolars <em>Coaching</em></h3>
+        <div class="desc-wrap">
+          <p class="desc">Operations Assistant. Lifted discovery call bookings and cut lead qualification from 2 hours to 30 minutes, while keeping a 100% same day response rate across 40 to 50 daily inquiries.</p>
+          <div class="tags"><span>Lead qualification</span><span>Discovery calls</span><span>Speed to lead</span></div>
+        </div>
+        <div class="metric"><b>+40%</b><small>discovery call bookings</small></div>
+      </article>
+
+      <article class="row reveal">
+        <span class="idx">04</span>
+        <h3>Special Maths <em>Academy</em></h3>
+        <div class="desc-wrap">
+          <p class="desc">Content and Operations Coordinator for an institution producing Harvard and MIT admits. Streamlined the marketing workflows and cut repetitive coordination tasks by 60%.</p>
+          <div class="tags"><span>Content</span><span>Marketing operations</span></div>
+        </div>
+        <div class="metric"><b>60%</b><small>less coordination work</small></div>
+      </article>
+
+    </div>
+    <a href="/resume" class="more reveal">Full history on my resume <span aria-hidden="true">↗</span></a>
+  </div>
+</section>
+
+<!-- APPROACH -->
+<section id="process" class="process">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="mono reveal">(04) How I sell</span>
+      <h2 class="reveal">Pick the right accounts. <em>Then follow through.</em></h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <span class="n">01</span>
+        <div><h3>Qualify first</h3><p>I check fit and timing before I reach out, so my time goes to accounts that can actually buy, not to a list that only looks big.</p></div>
+      </div>
+      <div class="step reveal">
+        <span class="n">02</span>
+        <div><h3>Open with relevance</h3><p>Every opener, by phone or by email, is about the prospect's world, not my pitch. It is how my templates ended up in use across a whole SDR team.</p></div>
+      </div>
+      <div class="step reveal">
+        <span class="n">03</span>
+        <div><h3>Never let it go cold</h3><p>Fast replies, consistent follow ups and clean CRM notes, so warm leads stay warm and every handoff arrives ready to close.</p></div>
+      </div>
+    </div>
+    <div class="toolkit reveal"><span class="mono">Toolkit</span><div><span>Apollo</span><span>Clay</span><span>Instantly</span><span>LinkedIn Sales Navigator</span><span>HubSpot</span><span>Parallel dialler</span><span>BANT qualification</span><span>Google Sheets</span></div></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="contact" class="cta">
+  <div class="cta-glow"></div>
+  <div class="wrap">
+    <span class="mono reveal">(05) Contact</span>
+    <h2 class="reveal">Let's fill<br><em>your pipeline.</em></h2>
+    <p class="reveal">Open to SDR, BDR, account executive and sales and marketing roles. Available remotely, worldwide.</p>
+    <div class="cta-actions reveal">
+      <a href="mailto:okaforizuchukwu737@gmail.com" class="btn btn-light">okaforizuchukwu737@gmail.com
+        <span class="arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+    </div>
+    <div class="cta-links reveal">
+      <a href="https://www.linkedin.com/in/izuchukwu-okafor-178073303/" target="_blank" rel="noopener">LinkedIn ↗</a>
+      <a href="/resume" target="_blank" rel="noopener">Resume ↗</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Izuchukwu Okafor</span>
+    <span>Built from scratch, obviously.</span>
+  </div>
+</footer>
+
+<script>
+  // Hero intro
+  requestAnimationFrame(() => setTimeout(() => document.body.classList.add('loaded'), 60));
+
+  // Nav state
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 30);
+  window.addEventListener('scroll', onScroll, { passive:true });
+  onScroll();
+
+  // Reveal with stagger per parent
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const sibs = [...entry.target.parentElement.children].filter(el => el.classList.contains('reveal'));
+      entry.target.style.transitionDelay = (Math.max(0, sibs.indexOf(entry.target)) * 0.07) + 's';
+      entry.target.classList.add('in');
+      io.unobserve(entry.target);
+    });
+  }, { threshold:0.12, rootMargin:'0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // Social proof quote: words light up as you scroll through it
+  const quote = document.getElementById('quote');
+  const wrapWords = (node) => {
+    [...node.childNodes].forEach(child => {
+      if (child.nodeType === 3) {
+        const frag = document.createDocumentFragment();
+        child.textContent.split(/(\s+)/).forEach(part => {
+          if (!part) return;
+          if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); return; }
+          const s = document.createElement('span'); s.className = 'w'; s.textContent = part; frag.appendChild(s);
+        });
+        node.replaceChild(frag, child);
+      } else if (child.nodeType === 1) {
+        wrapWords(child);
+      }
+    });
+  };
+  wrapWords(quote);
+  const words = quote.querySelectorAll('.w');
+  const lightWords = () => {
+    const r = quote.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const progress = Math.min(1, Math.max(0, (vh * 0.85 - r.top) / (r.height + vh * 0.35)));
+    const lit = Math.round(progress * words.length);
+    words.forEach((w, i) => w.classList.toggle('on', i < lit));
+  };
+  window.addEventListener('scroll', lightWords, { passive:true });
+  lightWords();
+
+  // Count up numbers
+  const countIO = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target, end = +el.dataset.count, dur = 1600, t0 = performance.now();
+      const tick = (t) => {
+        const p = Math.min(1, (t - t0) / dur);
+        el.textContent = Math.round(end * (1 - Math.pow(1 - p, 4)));
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+      countIO.unobserve(el);
+    });
+  }, { threshold:0.5 });
+  document.querySelectorAll('[data-count]').forEach(el => countIO.observe(el));
+
+  // Spotlight that follows the cursor on work rows
+  document.querySelectorAll('.row').forEach(row => {
+    row.addEventListener('mousemove', e => {
+      const r = row.getBoundingClientRect();
+      row.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+      row.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    });
+  });
+
+  // Magnetic buttons (desktop pointers only)
+  if (window.matchMedia('(pointer:fine)').matches && !window.matchMedia('(prefers-reduced-motion:reduce)').matches) {
+    document.querySelectorAll('.btn').forEach(btn => {
+      btn.addEventListener('mousemove', e => {
+        const r = btn.getBoundingClientRect();
+        const x = (e.clientX - r.left - r.width / 2) * 0.18;
+        const y = (e.clientY - r.top - r.height / 2) * 0.28;
+        btn.style.transform = `translate(${x}px, ${y}px)`;
+      });
+      btn.addEventListener('mouseleave', () => { btn.style.transform = ''; });
+    });
+  }
+</script>
+
+</body>
+</html>

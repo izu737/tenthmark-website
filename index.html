@@ -264,6 +264,18 @@
   footer{border-top:1px solid var(--line);padding:28px 0;}
   footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:.84rem;color:var(--ink-3);}
 
+  /* ---------- TESTIMONIALS ---------- */
+  #testimonials{padding-top:0;}
+  .testimonial{position:relative;margin:0 0 0 260px;padding:clamp(36px,4.5vw,64px);border:1px solid var(--line);border-radius:28px;
+    background:radial-gradient(120% 120% at 0% 0%,rgba(91,124,255,.14),transparent 55%),var(--bg-2);overflow:hidden}
+  .qmark{position:absolute;top:.02em;right:.22em;font-family:var(--serif);font-size:clamp(9rem,16vw,15rem);line-height:1;color:var(--accent-2);opacity:.16;pointer-events:none}
+  .testimonial blockquote{position:relative;font-size:clamp(1.5rem,2.6vw,2.3rem);line-height:1.28;letter-spacing:-.025em;font-weight:400;max-width:30ch;text-wrap:pretty}
+  .testimonial blockquote em{color:var(--accent-2)}
+  .testimonial figcaption{display:flex;align-items:center;gap:16px;margin-top:clamp(32px,4vw,48px);padding-top:24px;border-top:1px solid var(--line)}
+  .t-avatar{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-family:var(--serif);font-style:italic;font-size:1.5rem;color:#fff;background:linear-gradient(140deg,var(--accent),#2b3fb8)}
+  .t-who b{display:block;font-weight:500;font-size:1.02rem}
+  .t-who small{display:block;margin-top:3px;color:var(--ink-2);font-size:.9rem}
+
   /* ---------- RESPONSIVE ---------- */
   @media (max-width:1024px){
     .hero-foot{grid-template-columns:1fr 1fr;}
@@ -275,6 +287,7 @@
     .nav-links{display:none;}
     .sec-head{grid-template-columns:1fr;gap:18px;}
     .proof-list{margin-left:0;}
+    .testimonial{margin-left:0;}
     .proof-list li{grid-template-columns:44px 1fr;gap:16px;padding:22px 0;}
     .about{grid-template-columns:1fr;}
     .portrait-wrap{position:relative;top:0;max-width:300px;}
@@ -309,6 +322,7 @@
     <a href="#proof">Results</a>
     <a href="#about">About</a>
     <a href="#work">Work</a>
+    <a href="#testimonials">Testimonials</a>
     <a href="#process">Process</a>
   </div>
   <a href="#contact" class="btn btn-light btn-sm">Start a project
@@ -483,11 +497,29 @@
   </div>
 </section>
 
+<!-- TESTIMONIALS -->
+<section id="testimonials">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="mono reveal">(04) Testimonials</span>
+      <h2 class="reveal">What clients <em>say</em></h2>
+    </div>
+    <figure class="testimonial reveal">
+      <span class="qmark" aria-hidden="true">&ldquo;</span>
+      <blockquote>I hired Izuchukwu to create an AI assistant for our team, and he exceeded all expectations. The Google Assistant he developed has been a <em>game changer.</em></blockquote>
+      <figcaption>
+        <span class="t-avatar" aria-hidden="true">F</span>
+        <span class="t-who"><b>CEO, Faceskolars</b><small>Coaching agency with over 177K followers</small></span>
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
 <!-- PROCESS -->
 <section id="process" class="process">
   <div class="wrap">
     <div class="sec-head">
-      <span class="mono reveal">(04) How I work</span>
+      <span class="mono reveal">(05) How I work</span>
       <h2 class="reveal">Find the hours. <em>Build the system.</em></h2>
     </div>
     <div class="steps">
@@ -511,7 +543,7 @@
 <section id="contact" class="cta">
   <div class="cta-glow"></div>
   <div class="wrap">
-    <span class="mono reveal">(05) Contact</span>
+    <span class="mono reveal">(06) Contact</span>
     <h2 class="reveal">Let's build<br><em>something.</em></h2>
     <p class="reveal">Open to freelance projects, contractor roles and interesting problems. Available remotely, worldwide.</p>
     <div class="cta-actions reveal">

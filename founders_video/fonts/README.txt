@@ -1,4 +1,7 @@
-Put the font for your videos in this folder (one .ttf or .otf file, the Regular style).
+Cardo-Regular.ttf is the font your videos use. Cardo-OFL.txt is its free license
+and must stay with the font if you share it.
+
+To switch fonts, replace Cardo-Regular.ttf with another .ttf or .otf (Regular style).
 
 When this folder has a font, render.py uses it automatically, so you do not need to
 type the font path. Delete the font from this folder to go back to automatic search

@@ -34,6 +34,13 @@ Or double click `test.bat` (renders `clip.mp3`), or drag an audio file onto `ren
 
 `output.mp4` is written next to the audio file. The transcript is cached as `<name>.words.json`, so re-renders skip Whisper. Add `--retranscribe` to force a new transcription, or `--model large-v3` for the larger model.
 
+## Rendering a whole episode
+
+Drag the episode file (for example `episode1.m4a`) onto `render.bat`, or run `python render.py episode1.m4a`. The first run on a new file transcribes it with Whisper, which takes the longest; later runs reuse `episode1.words.json`. `test.bat` only ever renders `clip.mp3`.
+
 ## Fonts
+
+The app ships with **Cardo** in the `fonts` folder (SIL Open Font License, see `fonts/Cardo-OFL.txt`), so it is the default.
+
 
 A font path on the command line wins. Otherwise the first font in the `fonts` folder is used. Otherwise installed fonts are searched: Editorial New, Canela, Söhne, GT America, Georgia, then DejaVu Serif or Liberation Serif.

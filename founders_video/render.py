@@ -10,6 +10,12 @@ Optional flags:
     --model medium|medium.en|large|large-v2|large-v3   (default: medium)
     --retranscribe   ignore the cached transcript and run Whisper again
 
+Fonts: a font file passed on the command line wins; otherwise the first font in a
+"fonts" folder next to this script; otherwise installed fonts are searched.
+
+Look: off white background, words turn black the moment they are spoken and stay
+black, words not yet spoken are light grey (colours measured from a Founders clip).
+
 Output: output.mp4 (1920x1080, 30 fps, H.264 + AAC) written next to the audio file.
 """
 
@@ -42,20 +48,29 @@ except ImportError:
 # ---------------------------------------------------------------------------
 WIDTH, HEIGHT = 1920, 1080
 FPS = 30
-BACKGROUND = (255, 255, 255)        # #FFFFFF
-INACTIVE_COLOR = (204, 204, 204)    # #CCCCCC, regular weight
-ACTIVE_COLOR = (17, 17, 17)         # #111111, bold weight
-FONT_SIZE = 72
-LINE_HEIGHT = 1.4
+# Colours and geometry measured from a Founders Podcast clip frame, scaled to 1920x1080.
+BACKGROUND = (250, 248, 246)        # #FAF8F6 warm off white
+SPOKEN_COLOR = (0, 0, 0)            # #000000 every word already spoken
+UNSPOKEN_COLOR = (184, 183, 181)    # #B8B7B5 every word not spoken yet
+SPOKEN_BOLD = False                 # the clip uses one weight; set True to make spoken words bold
 LINES_PER_CHUNK = 3
 
-LEFT_PADDING = 120                  # text block starts 120px from the left edge
-RIGHT_PADDING = 120                 # lines never run closer than this to the right edge
+# Letter spacing. "auto" picks the spacing at which this font sets the reference lines
+# below at the same widths as the Founders clip. A number sets it by hand, in em
+# (e.g. -0.03 is 3% tighter, 0 is the font's own spacing).
+TRACKING_EM = "auto"
+# Lines from the reference frame and their measured ink widths at 1920x1080, in px.
+REFERENCE_LINES = {
+    "I remember now I moved": 1513,
+    "from the bed to the floor": 1444,
+    "in the middle of the night.": 1535,
+}
+CAP_HEIGHT = 103                    # height of a capital letter in px; the font size is derived from it
+LINE_PITCH = 162                    # distance from one baseline to the next, in px
+FIRST_BASELINE = 418                # baseline of the first line, in px from the top
+LEFT_PADDING = 124                  # text starts here (the first letter's ink lands near x = 128)
+RIGHT_PADDING = 128                 # lines never run closer than this to the right edge
 MAX_LINE_WIDTH = WIDTH - LEFT_PADDING - RIGHT_PADDING
-# Top of the 3 line block sits at the top of the middle third (y = 360).
-# The block is about 302px tall, so it stays inside the middle third and its
-# centre lands roughly 30px above the true centre of the frame.
-TEXT_TOP = HEIGHT // 3
 
 # Line breaking targets
 MIN_WORDS, MAX_WORDS = 5, 7          # preferred words per line
@@ -86,6 +101,8 @@ class Fonts:
     regular: ImageFont.FreeTypeFont
     bold: ImageFont.FreeTypeFont
     bold_stroke: int    # > 0 only when bold is faked with a stroke
+    size: int           # font size in px, chosen so capitals are CAP_HEIGHT tall
+    tracking: float     # letter spacing in px added after every character
     description: str
 
 
@@ -156,10 +173,17 @@ def find_style(index, family_key: str, styles: set, exact_family: bool = False):
     return None
 
 
-def try_variable_bold(path: Path):
+def size_for_cap_height(path: Path) -> int:
+    """Pick the font size at which a capital H is CAP_HEIGHT pixels tall."""
+    probe = ImageFont.truetype(str(path), 200)
+    top, bottom = probe.getbbox("H")[1], probe.getbbox("H")[3]
+    return max(8, round(200 * CAP_HEIGHT / max(1, bottom - top)))
+
+
+def try_variable_bold(path: Path, size: int):
     """If the font is a variable font with a Bold instance, return that instance."""
     try:
-        font = ImageFont.truetype(str(path), FONT_SIZE)
+        font = ImageFont.truetype(str(path), size)
         for name in font.get_variation_names():
             label = name.decode() if isinstance(name, bytes) else str(name)
             if normalize_name(label) == "bold":
@@ -170,21 +194,44 @@ def try_variable_bold(path: Path):
     return None
 
 
-def build_fonts(regular_path: Path, bold_path, origin: str) -> Fonts:
-    """Load the regular and bold faces, faking bold with a stroke as a last resort."""
-    regular = ImageFont.truetype(str(regular_path), FONT_SIZE)
-    if bold_path:
-        bold = ImageFont.truetype(str(bold_path), FONT_SIZE)
-        return Fonts(regular, bold, 0, f"{origin}: {regular_path.name} + {bold_path.name}")
+def fit_tracking(font, size: int) -> float:
+    """
+    Letter spacing (px per character) that makes this font set REFERENCE_LINES at the
+    clip's measured widths. Width grows linearly with spacing, so this is one division.
+    """
+    base_total, per_px_total, target_total = 0.0, 0.0, 0.0
+    for line, target in REFERENCE_LINES.items():
+        base = font.getlength(line)
+        base_total += base
+        per_px_total += len(line) - 1      # spacing is added between every pair of characters
+        target_total += target
+    return (target_total - base_total) / per_px_total
 
-    variable_bold = try_variable_bold(regular_path)
+
+def build_fonts(regular_path: Path, bold_path, origin: str) -> Fonts:
+    """Load the regular face (and a bold face only if SPOKEN_BOLD is on), sized and spaced."""
+    size = size_for_cap_height(regular_path)
+    regular = ImageFont.truetype(str(regular_path), size)
+    if TRACKING_EM == "auto":
+        tracking = fit_tracking(regular, size)
+    else:
+        tracking = float(TRACKING_EM) * size
+    label = (f"{origin}: {regular_path.name} at {size}px, "
+             f"letter spacing {tracking / size:+.3f} em")
+    if not SPOKEN_BOLD:
+        return Fonts(regular, regular, 0, size, tracking, label)
+    if bold_path:
+        bold = ImageFont.truetype(str(bold_path), size)
+        return Fonts(regular, bold, 0, size, tracking, f"{label} + {bold_path.name}")
+
+    variable_bold = try_variable_bold(regular_path, size)
     if variable_bold:
-        return Fonts(regular, variable_bold, 0, f"{origin}: {regular_path.name} (variable Bold instance)")
+        return Fonts(regular, variable_bold, 0, size, tracking, f"{label} (variable Bold instance)")
 
     # No real bold available: draw the regular face with a thin outline in the same colour.
-    stroke = max(1, round(FONT_SIZE * 0.025))
+    stroke = max(1, round(size * 0.025))
     print(f"Warning: no bold face found for {regular_path.name}; simulating bold with a {stroke}px stroke.")
-    return Fonts(regular, regular, stroke, f"{origin}: {regular_path.name} (synthetic bold)")
+    return Fonts(regular, regular, stroke, size, tracking, f"{label} (synthetic bold)")
 
 
 def load_fonts(user_font) -> Fonts:
@@ -204,6 +251,15 @@ def load_fonts(user_font) -> Fonts:
         if sibling_bold == path:
             sibling_bold = None
         return build_fonts(path, sibling_bold, "Font file")
+
+    # A font placed in the "fonts" folder next to render.py wins over installed fonts.
+    local_dir = Path(__file__).resolve().parent / "fonts"
+    local_index = scan_fonts([local_dir])
+    if local_index:
+        regular = next((p for f, st, p in local_index if st in REGULAR_STYLES), local_index[0][2])
+        family = font_identity(regular)[0]
+        bold = find_style(local_index, family, BOLD_STYLES, exact_family=True)
+        return build_fonts(regular, bold, "Font from fonts folder")
 
     print("No font file given; searching installed fonts...")
     index = scan_fonts(FONT_DIRS)
@@ -367,12 +423,15 @@ def break_cost(prev_word: str, next_word: str) -> float:
 
 def gap_for(extras, space_width: float) -> float:
     """
-    Even word gap for a group of words. The active word is drawn bold and centred on
-    its regular width, so it pushes half of its extra width into each neighbouring
-    gap. The gap is widened just enough that a bold word never touches a neighbour.
+    Even word gap for a group of words. When SPOKEN_BOLD is on, a spoken word is drawn
+    bold and centred on its regular width, pushing half its extra width into each
+    neighbouring gap (and two neighbours can both be bold). The gap is widened just
+    enough that bold words never touch. With one weight, extras are 0 and this is a space.
     """
     largest = max(extras) if extras else 0.0
-    return max(space_width, largest / 2 + space_width * GAP_CLEARANCE)
+    if largest == 0:
+        return space_width
+    return max(space_width, largest + space_width * GAP_CLEARANCE)
 
 
 def break_into_lines(words, widths, extras, space_width):
@@ -430,15 +489,12 @@ def layout(words, fonts: Fonts):
     Words are spaced by their regular widths with one even gap per screen, and the
     bold version is centred on the regular one, so lines never reflow.
     """
-    widths = [fonts.regular.getlength(w.text) for w in words]
-    bold_widths = [fonts.bold.getlength(w.text) + 2 * fonts.bold_stroke for w in words]
+    widths = [word_width(fonts.regular, w.text, fonts.tracking) for w in words]
+    bold_widths = [word_width(fonts.bold, w.text, fonts.tracking) + 2 * fonts.bold_stroke for w in words]
     extras = [max(0.0, b - r) for b, r in zip(bold_widths, widths)]
-    space_width = fonts.regular.getlength(" ")
+    # A space carries letter spacing on both sides, like the characters around it.
+    space_width = fonts.regular.getlength(" ") + 2 * fonts.tracking
     lines = break_into_lines(words, widths, extras, space_width)
-
-    line_pitch = FONT_SIZE * LINE_HEIGHT
-    half_leading = (line_pitch - FONT_SIZE) / 2
-    ascent, _descent = fonts.regular.getmetrics()
 
     positions = [(0, 0, 0)] * len(words)
     chunks, word_to_chunk = [], [0] * len(words)
@@ -453,11 +509,11 @@ def layout(words, fonts: Fonts):
             if sum(widths[start:end]) + gap * (end - start - 1) > MAX_LINE_WIDTH:
                 # Rare: the shared gap would push this line past the margin; use its own gap.
                 gap = gap_for(extras[start:end], space_width)
-            baseline = TEXT_TOP + half_leading + ascent + row * line_pitch
+            baseline = FIRST_BASELINE + row * LINE_PITCH
             x = float(LEFT_PADDING)
             for i in range(start, end):
                 # Bold glyphs (without any synthetic stroke) centred on the regular word.
-                bold_x = x + (widths[i] - (bold_widths[i] - 2 * fonts.bold_stroke)) / 2
+                bold_x = x + (widths[i] - (bold_widths[i] - 2 * fonts.bold_stroke)) / 2  # == x at one weight
                 positions[i] = (round(x), round(bold_x), round(baseline))
                 word_to_chunk[i] = chunk_index
                 chunk_words.append(i)
@@ -469,33 +525,48 @@ def layout(words, fonts: Fonts):
 # ---------------------------------------------------------------------------
 # Frame rendering with Pillow
 # ---------------------------------------------------------------------------
-def render_frame(words, chunk_words, positions, active, fonts: Fonts) -> bytes:
-    """Draw one 1920x1080 frame: every word grey/regular except the active one, black/bold."""
+def word_width(font, text: str, tracking: float) -> float:
+    """Advance width of a word including letter spacing between its characters."""
+    return font.getlength(text) + tracking * (len(text) - 1)
+
+
+def draw_word(draw, x, y, text, font, tracking, color, stroke=0) -> None:
+    """Draw a word on its baseline; with letter spacing, place each character individually."""
+    if abs(tracking) < 0.05:
+        draw.text((x, y), text, font=font, fill=color, anchor="ls",
+                  stroke_width=stroke, stroke_fill=color)
+        return
+    track = tracking
+    for i, char in enumerate(text):
+        # Prefix widths keep the font's kerning between neighbouring letters.
+        draw.text((x + font.getlength(text[:i]) + i * track, y), char, font=font, fill=color,
+                  anchor="ls", stroke_width=stroke, stroke_fill=color)
+
+
+def render_frame(words, chunk_words, positions, last_spoken, fonts: Fonts) -> bytes:
+    """Draw one 1920x1080 frame: words up to last_spoken in black, the rest in grey."""
     image = Image.new("RGB", (WIDTH, HEIGHT), BACKGROUND)
     draw = ImageDraw.Draw(image)
     for i in chunk_words:
         x, bold_x, y = positions[i]
-        if i == active:
-            stroke = fonts.bold_stroke
-            draw.text((bold_x, y), words[i].text, font=fonts.bold, fill=ACTIVE_COLOR,
-                      anchor="ls", stroke_width=stroke, stroke_fill=ACTIVE_COLOR)
+        if i <= last_spoken:
+            draw_word(draw, bold_x, y, words[i].text, fonts.bold, fonts.tracking,
+                      SPOKEN_COLOR, fonts.bold_stroke)
         else:
-            draw.text((x, y), words[i].text, font=fonts.regular, fill=INACTIVE_COLOR, anchor="ls")
+            draw_word(draw, x, y, words[i].text, fonts.regular, fonts.tracking, UNSPOKEN_COLOR)
     return image.tobytes()
 
 
-def state_at(t, starts, words, word_to_chunk, chunk_count):
+def state_at(t, starts, word_to_chunk):
     """
-    Which chunk is on screen and which word is active at time t.
-    A word is active from its own start until the next word's start (the last word
-    until its end). Before the first word the first chunk shows with nothing active;
-    after the last word ends the last chunk stays with nothing active.
+    Which chunk is on screen at time t, and the index of the last word spoken so far.
+    A word turns black the instant its timestamp begins and stays black. The screen
+    moves to the next chunk the instant that chunk's first word begins. Before the
+    first word, the first chunk shows entirely in grey.
     """
     index = bisect.bisect_right(starts, t) - 1
     if index < 0:
         return 0, -1
-    if index == len(words) - 1 and t >= words[-1].end:
-        return chunk_count - 1, -1
     return word_to_chunk[index], index
 
 
@@ -532,6 +603,11 @@ def start_encoder(audio_path: Path, output_path: Path, log_file):
         # Audio: the original file
         "-i", str(audio_path),
         "-map", "0:v:0", "-map", "1:a:0",
+        # Convert RGB to YUV with the HD (BT.709) matrix and tag the file to match, so
+        # players reproduce the off white background and greys without a colour shift.
+        "-vf", "scale=out_color_matrix=bt709:out_range=tv:flags=accurate_rnd+full_chroma_int",
+        "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
+        "-color_range", "tv",
         "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-tune", "stillimage",
         "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k",
@@ -607,11 +683,11 @@ def main() -> None:
                 # Sample the middle of the frame's display interval, so a word lights up
                 # on the frame closest to its timestamp (error under half a frame, ~17ms).
                 t = (frame_index + 0.5) / FPS
-                state = state_at(t, starts, words, word_to_chunk, len(chunks))
+                state = state_at(t, starts, word_to_chunk)
                 # Most consecutive frames are identical; only redraw when the state changes.
                 if state != last_state:
-                    chunk_index, active = state
-                    frame = render_frame(words, chunks[chunk_index], positions, active, fonts)
+                    chunk_index, last_spoken = state
+                    frame = render_frame(words, chunks[chunk_index], positions, last_spoken, fonts)
                     last_state = state
                 encoder.stdin.write(frame)
             encoder.stdin.close()

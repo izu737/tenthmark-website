@@ -56,9 +56,11 @@ SPOKEN_BOLD = False                 # the clip uses one weight; set True to make
 LINES_PER_CHUNK = 3
 
 # Letter spacing. "auto" picks the spacing at which this font sets the reference lines
-# below at the same widths as the Founders clip. A number sets it by hand, in em
-# (e.g. -0.03 is 3% tighter, 0 is the font's own spacing).
+# below at the same widths as the Founders clip, limited to AUTO_TRACKING_RANGE so a
+# font is never loosened and never squeezed out of its natural look. A number sets it
+# by hand, in em (e.g. -0.03 is 3% tighter, 0 is the font's own spacing).
 TRACKING_EM = "auto"
+AUTO_TRACKING_RANGE = (-0.04, 0.0)
 # Lines from the reference frame and their measured ink widths at 1920x1080, in px.
 REFERENCE_LINES = {
     "I remember now I moved": 1513,
@@ -213,7 +215,8 @@ def build_fonts(regular_path: Path, bold_path, origin: str) -> Fonts:
     size = size_for_cap_height(regular_path)
     regular = ImageFont.truetype(str(regular_path), size)
     if TRACKING_EM == "auto":
-        tracking = fit_tracking(regular, size)
+        low, high = AUTO_TRACKING_RANGE
+        tracking = min(max(fit_tracking(regular, size), low * size), high * size)
     else:
         tracking = float(TRACKING_EM) * size
     label = (f"{origin}: {regular_path.name} at {size}px, "

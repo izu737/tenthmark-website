@@ -1,0 +1,4 @@
+mediapipe
+opencv-python-headless
+numpy
+Pillow>=10.0

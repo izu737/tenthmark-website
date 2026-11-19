@@ -1,0 +1,5 @@
+models/
+*_thumbnail.png
+*_thumbnail.jpg
+__pycache__/
+.venv/

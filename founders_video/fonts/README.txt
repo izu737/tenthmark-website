@@ -1,7 +1,7 @@
-Cardo-Regular.ttf is the font your videos use. Cardo-OFL.txt is its free license
+HedvigLettersSerif-Regular.ttf is the font your videos use. HedvigLettersSerif-OFL.txt is its free license
 and must stay with the font if you share it.
 
-To switch fonts, replace Cardo-Regular.ttf with another .ttf or .otf (Regular style).
+To switch fonts, replace HedvigLettersSerif-Regular.ttf with another .ttf or .otf (Regular style).
 
 When this folder has a font, render.py uses it automatically, so you do not need to
 type the font path. Delete the font from this folder to go back to automatic search

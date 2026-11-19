@@ -10,7 +10,7 @@ Turns an MP3, WAV or M4A into a 1920x1080, 30 fps MP4 in the style of Founders P
 | Spoken words | #000000 |
 | Unspoken words | #B8B7B5 |
 | Weight | One weight for both (set `SPOKEN_BOLD = True` in render.py to make spoken words bold) |
-| Capital letter height | 103px (font size is derived from this, so every font comes out the same size) |
+| Lowercase letter height | 74px (font size is derived from this, so every font looks as big as the original) |
 | Line spacing | 162px baseline to baseline, first baseline at y = 418 |
 | Left edge | text starts at x = 124 |
 | Letter spacing | `"auto"`: tuned per font so lines match the clip's measured widths |
@@ -57,7 +57,7 @@ The rules (all in `pauses.py`, easy to tune):
 
 ## Fonts
 
-The app ships with **Cardo** in the `fonts` folder (SIL Open Font License, see `fonts/Cardo-OFL.txt`), so it is the default.
+The app ships with **Hedvig Letters Serif** in the `fonts` folder (SIL Open Font License, see `fonts/HedvigLettersSerif-OFL.txt`), so it is the default.
 
 
 A font path on the command line wins. Otherwise the first font in the `fonts` folder is used. Otherwise installed fonts are searched: Editorial New, Canela, Söhne, GT America, Georgia, then DejaVu Serif or Liberation Serif.

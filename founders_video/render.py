@@ -67,7 +67,8 @@ REFERENCE_LINES = {
     "from the bed to the floor": 1444,
     "in the middle of the night.": 1535,
 }
-CAP_HEIGHT = 103                    # height of a capital letter in px; the font size is derived from it
+X_HEIGHT = 74                       # height of lowercase letters (x, e, m) in px, measured from the Founders frame;
+                                    # the font size is derived from it, so every font looks as big as the original
 LINE_PITCH = 162                    # distance from one baseline to the next, in px
 FIRST_BASELINE = 418                # baseline of the first line, in px from the top
 LEFT_PADDING = 124                  # text starts here (the first letter's ink lands near x = 128)
@@ -176,10 +177,13 @@ def find_style(index, family_key: str, styles: set, exact_family: bool = False):
 
 
 def size_for_cap_height(path: Path) -> int:
-    """Pick the font size at which a capital H is CAP_HEIGHT pixels tall."""
+    """Pick the font size at which lowercase letters are X_HEIGHT pixels tall.
+
+    Lowercase height, not capital height, decides how big text looks, because almost every
+    letter on screen is lowercase."""
     probe = ImageFont.truetype(str(path), 200)
-    top, bottom = probe.getbbox("H")[1], probe.getbbox("H")[3]
-    return max(8, round(200 * CAP_HEIGHT / max(1, bottom - top)))
+    top, bottom = probe.getbbox("x")[1], probe.getbbox("x")[3]
+    return max(8, round(200 * X_HEIGHT / max(1, bottom - top)))
 
 
 def try_variable_bold(path: Path, size: int):

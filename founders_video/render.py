@@ -636,6 +636,9 @@ def parse_args():
                         help="Whisper model size (default: medium)")
     parser.add_argument("--retranscribe", action="store_true",
                         help="ignore the cached transcript and run Whisper again")
+    parser.add_argument("--pauses", default="off", choices=["off", "report", "tighten"],
+                        help="shorten long pauses: 'report' only analyses and writes a preview "
+                             "audio file to listen to; 'tighten' also renders the video with it")
     return parser.parse_args()
 
 
@@ -669,6 +672,31 @@ def main() -> None:
     words = clean_timestamps(words)
     print(f"{len(words)} words transcribed.")
 
+    # 3b. Optional: shorten long pauses (see pauses.py for the exact rules)
+    play_path = audio_path
+    if args.pauses != "off":
+        import pauses as P
+        plan, info = P.plan(audio_path, words)
+        report = audio_path.with_name(audio_path.stem + ".pauses.csv")
+        P.write_report(plan, report)
+        print(P.summary(plan, info))
+        print(f"Every pause is listed in {report.name}")
+        tightened = audio_path.with_name(audio_path.stem + ".tightened.wav")
+        new_duration = P.apply(audio_path, plan, tightened)
+        ok, msg = P.verify(audio_path, tightened, plan, info["threshold_db"])
+        print(f"Safety check: {msg}")
+        if not ok:
+            tightened.unlink(missing_ok=True)
+            fail("the safety check found sound missing from the edit, so nothing was changed. "
+                 "Render without --pauses, and send me the .pauses.csv file.")
+        if args.pauses == "report":
+            print(f"Preview: listen to {tightened.name}. No video was rendered.")
+            return
+        for w in words:
+            w.start, w.end = P.remap(w.start, plan), P.remap(w.end, plan)
+        play_path, duration = tightened, new_duration
+        print(f"Audio tightened: {info['duration']:.1f}s -> {duration:.1f}s")
+
     # 4. Layout: lines, 3 line chunks, fixed word positions
     chunks, positions, word_to_chunk = layout(words, fonts)
     print(f"{len(chunks)} screens of text.")
@@ -679,7 +707,7 @@ def main() -> None:
     print(f"Rendering {total_frames} frames ({duration:.1f}s at {FPS} fps) to {output_path}")
 
     with tempfile.TemporaryFile() as log_file:
-        encoder = start_encoder(audio_path, output_path, log_file)
+        encoder = start_encoder(play_path, output_path, log_file)
         last_state, frame = None, None
         try:
             for frame_index in tqdm(range(total_frames), unit="frame"):

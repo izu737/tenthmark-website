@@ -38,6 +38,23 @@ Or double click `test.bat` (renders `clip.mp3`), or drag an audio file onto `ren
 
 Drag the episode file (for example `episode1.m4a`) onto `render.bat`, or run `python render.py episode1.m4a`. The first run on a new file transcribes it with Whisper, which takes the longest; later runs reuse `episode1.words.json`. `test.bat` only ever renders `clip.mp3`.
 
+## Shortening long pauses (optional, off by default)
+
+    python render.py episode1.m4a --pauses report     # analyse only: writes episode1.pauses.csv and episode1.tightened.wav
+    python render.py episode1.m4a --pauses tighten    # renders the video with the tightened audio
+
+Or drag the audio onto `preview_pauses.bat` (listen first) and then onto `render_tight.bat`.
+
+The rules (all in `pauses.py`, easy to tune):
+- pauses up to 0.6s inside a sentence, or 0.8s after . ? !, are left exactly as they are
+- longer pauses keep that much plus 30% of the extra, up to 1.0s (mid sentence) or 1.3s (after a sentence)
+- silence at the very start is trimmed to 0.3s and at the very end to 0.8s
+- silence is measured from the audio, not guessed from the transcript; only the middle of a silence is cut,
+  0.12s is kept after speech and 0.10s before it, joins are crossfaded
+- nothing with sound in it is ever cut (breaths, laughs, music, quiet words), and never where Whisper heard a word
+- if the recording is too noisy to tell quiet speech from silence, it refuses and changes nothing
+- after editing it re-measures the result and refuses to continue if any sound went missing
+
 ## Fonts
 
 The app ships with **Cardo** in the `fonts` folder (SIL Open Font License, see `fonts/Cardo-OFL.txt`), so it is the default.

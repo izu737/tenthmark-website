@@ -3,3 +3,6 @@ models/
 *_thumbnail.jpg
 __pycache__/
 .venv/
+photos/
+*_candidates.jpg
+*_credit.txt

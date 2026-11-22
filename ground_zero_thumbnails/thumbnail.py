@@ -19,6 +19,7 @@ All numbers below were measured from full resolution Founders thumbnails
 
 import argparse
 import math
+import re
 import os
 import sys
 import urllib.request
@@ -74,21 +75,36 @@ def model_path(kind):
 
 
 # ---------------------------------------------------------------- 1. face
-def detect_face(rgb):
-    """Return the largest face box (x, y, w, h) in pixels."""
+def detect_faces(rgb, min_confidence=0.3):
+    """Every face in the image, largest first: dicts with box (x, y, w, h), score and keypoints.
+
+    Keypoints are in pixels, in MediaPipe's order: right eye, left eye, nose tip, mouth,
+    right ear, left ear (right and left from the person's point of view)."""
     import mediapipe as mp
     from mediapipe.tasks.python import BaseOptions, vision
     opts = vision.FaceDetectorOptions(base_options=BaseOptions(model_asset_path=model_path("face")),
-                                      min_detection_confidence=0.3)
+                                      min_detection_confidence=min_confidence)
     det = vision.FaceDetector.create_from_options(opts)
     try:
         res = det.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=np.ascontiguousarray(rgb)))
     finally:
         det.close()
-    if not res.detections:
+    h, w = rgb.shape[:2]
+    faces = []
+    for d in res.detections:
+        b = d.bounding_box
+        kps = [(k.x * w, k.y * h) for k in (d.keypoints or [])]
+        faces.append({"box": (b.origin_x, b.origin_y, b.width, b.height),
+                      "score": d.categories[0].score if d.categories else 0.0, "keypoints": kps})
+    return sorted(faces, key=lambda f: -f["box"][2])
+
+
+def detect_face(rgb):
+    """Return the largest face box (x, y, w, h) in pixels."""
+    faces = detect_faces(rgb)
+    if not faces:
         fail("no face found in the photo. Use a clear, front facing photo.")
-    b = max(res.detections, key=lambda d: d.bounding_box.width).bounding_box
-    return b.origin_x, b.origin_y, b.width, b.height
+    return faces[0]["box"]
 
 
 # ---------------------------------------------------------------- 2. cutout
@@ -328,19 +344,59 @@ def make_thumbnail(photo_path, title, out_path, font_path=None, arrow=True, debu
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Founders style YouTube thumbnail.")
-    ap.add_argument("photo", help="photo of the person (jpg or png)")
-    ap.add_argument("title", help="text across the top")
+    ap = argparse.ArgumentParser(
+        description="Founders style YouTube thumbnail.",
+        epilog='Examples:  thumbnail.py "How the fuck did he do it" --person "Aliko Dangote"\n'
+               '           thumbnail.py photo.jpg "The Bulldozer"',
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("inputs", nargs="+", metavar="[photo] title",
+                    help="the title, preceded by a photo file unless --person is used")
+    ap.add_argument("--person", help="find a freely licensed photo of this person on Wikimedia Commons")
+    ap.add_argument("--pick", type=int, default=None,
+                    help="with --person: use candidate number N from the contact sheet instead of the top one")
     ap.add_argument("-o", "--out", default=None, help="output file (.png or .jpg)")
     ap.add_argument("--font", default=None, help="title font file (default: Bodoni Moda Italic)")
     ap.add_argument("--no-arrow", action="store_true", help="leave out the arrow")
     ap.add_argument("--debug", action="store_true", help="draw the target face box")
     a = ap.parse_args()
-    if not Path(a.photo).is_file():
-        fail(f"photo not found: {a.photo}")
-    out = a.out or str(Path(a.photo).with_name(Path(a.photo).stem + "_thumbnail.png"))
-    path = make_thumbnail(a.photo, a.title, out, a.font, arrow=not a.no_arrow, debug=a.debug)
-    print(f"Done: {path}")
+
+    if a.person:
+        if len(a.inputs) != 1:
+            fail('with --person, give only the title, e.g. thumbnail.py "The Bulldozer" --person "Chung Ju-yung"')
+        title = a.inputs[0]
+        import photo_search as ps
+        try:
+            chosen, ranked, person = ps.search(a.person, HERE / "photos", pick=a.pick)
+        except Exception as exc:
+            fail(f"photo search: {exc}")
+        stem = re.sub(r"[^\w]+", "_", person["label"]).strip("_")
+        out = a.out or str(Path.cwd() / f"{stem}_thumbnail.png")
+        usable = [c for c in ranked if c["reject"] is None]
+        print(f"\nTop candidates (score out of 100):")
+        for n, c in enumerate(usable[:8], 1):
+            mark = "  <- using this one" if c is chosen else ""
+            print(f"  #{n}  {c['score']:5.1f}  {c['title'][5:][:70]}{mark}")
+        skipped = [c for c in ranked if c["reject"]]
+        if skipped:
+            print(f"  ({len(skipped)} skipped: " + ", ".join(sorted({c['reject'] for c in skipped})) + ")")
+        sheet = ps.contact_sheet(ranked, str(Path(out).with_name(Path(out).stem + "_candidates.jpg")))
+        photo = chosen["path"]
+        credit = ps.credit_line(chosen)
+        Path(out).with_name(Path(out).stem + "_credit.txt").write_text(credit + "\n", encoding="utf-8")
+    else:
+        if len(a.inputs) != 2:
+            fail('give a photo and a title, e.g. thumbnail.py photo.jpg "The Bulldozer", or use --person')
+        photo, title = a.inputs
+        if not Path(photo).is_file():
+            fail(f"photo not found: {photo}")
+        out = a.out or str(Path(photo).with_name(Path(photo).stem + "_thumbnail.png"))
+        credit = sheet = None
+
+    path = make_thumbnail(photo, title, out, a.font, arrow=not a.no_arrow, debug=a.debug)
+    print(f"\nDone: {path}")
+    if a.person:
+        print(f"Candidates compared: {sheet}")
+        print(f"Credit for your video description (also saved next to the thumbnail):\n  {credit}")
 
 
 if __name__ == "__main__":

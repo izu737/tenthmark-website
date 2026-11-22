@@ -18,7 +18,22 @@ was taken from full resolution Founders thumbnails and is listed at the top of `
 The first run downloads two small MediaPipe models (face finder and person cutout, about 17 MB)
 into `models\`.
 
-## Use
+## Use: just a name (finds the photo for you)
+
+Double click `make_thumbnail_for_person.bat`, type the person and the title. Or:
+
+    python thumbnail.py "How the fuck did he do it" --person "Aliko Dangote"
+
+It looks the person up on Wikidata, scores their freely licensed photos on Wikimedia Commons
+(one face only, shoulders in frame, resolution, facing the camera, sharpness), uses the best one,
+and saves three files: the thumbnail, `..._candidates.jpg` (the top photos it compared, numbered)
+and `..._credit.txt` (the credit line to paste into your video description).
+Prefer another candidate? Add `--pick 2` (or 3, 4...) using the numbers on the candidates sheet.
+
+Optional: Wikimedia asks automated tools to include contact details. Before running, you can set
+`set GZ_CONTACT=your@email.com` in Command Prompt; it is only sent to Wikimedia, never anywhere else.
+
+## Use: your own photo
 
 Drag a photo onto `make_thumbnail.bat`, type the title, press Enter. Or:
 

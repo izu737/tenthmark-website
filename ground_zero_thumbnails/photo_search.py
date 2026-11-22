@@ -230,7 +230,7 @@ def search(name, cache_dir, pick=None, log=print):
     log(f"Scoring {len(cands)} photos from Wikimedia Commons (960 px previews)...")
     folder = Path(cache_dir) / re.sub(r"[^\w]+", "_", person["label"]).strip("_")
     folder.mkdir(parents=True, exist_ok=True)
-    ranked = []
+    ranked, failed = [], []
     for n, c in enumerate(cands, 1):
         stem = re.sub(r"[^\w]+", "_", Path(c["title"][5:]).stem)[:110]
         path = folder / f"{stem}_preview.jpg"
@@ -241,17 +241,32 @@ def search(name, cache_dir, pick=None, log=print):
                 time.sleep(1.0)               # one request a second: gentle on Wikimedia's servers
             img = Image.open(path).convert("RGB")
         except Exception as exc:
-            log(f"  [{n}/{len(cands)}] skipped {c['title'][5:]}: could not download ({exc})")
+            log(f"  [{n}/{len(cands)}] could not download {c['title'][5:]} ({exc})")
+            failed.append(c)
             continue
         score, parts, reject = score_photo(img, c["title"] in main, c["width"])
         c.update(path=str(path), score=score, parts=parts, reject=reject)
         log(f"  [{n}/{len(cands)}] {'skip: ' + reject if reject else f'{score:5.1f}'}  {c['title'][5:][:60]}")
         ranked.append(c)
     ranked.sort(key=lambda c: (c["reject"] is not None, -c["score"]))
+    # Never quietly settle for second best because downloads failed: say so and stop.
+    main_failed = [c for c in failed if c["title"] in main]
+    if main_failed or len(failed) > len(cands) / 2:
+        reason = ("Wikidata's main portrait of this person" if main_failed
+                  else f"{len(failed)} of {len(cands)} photos")
+        raise ValueError(f"{reason} could not be downloaded (network trouble or Wikimedia rate limits), so the best "
+                         f"photo may be missing from the comparison. Nothing was made. Try again in a few minutes; "
+                         f"photos already downloaded are kept, so the retry is quicker.")
+    if failed:
+        log(f"Note: {len(failed)} photo(s) could not be downloaded and were not compared.")
     usable = [c for c in ranked if c["reject"] is None]
     if not usable:
         raise ValueError(f"found {len(ranked)} photos of {person['label']}, but none shows one clear face")
     chosen = usable[(pick or 1) - 1] if pick and pick <= len(usable) else usable[0]
+    if chosen["score"] < 60:
+        log(f"Warning: the best photo available scores only {chosen['score']:.0f}/100 "
+            f"(weakest point: {min(chosen['parts'], key=chosen['parts'].get)}). Check the candidates sheet; "
+            f"a photo of your own may give a better result.")
     # now fetch only the chosen photo at full quality
     full = file_info([chosen["title"]], width=FINAL_WIDTH)[chosen["title"]]
     full_path = folder / (Path(chosen["path"]).stem.replace("_preview", "") + ".jpg")

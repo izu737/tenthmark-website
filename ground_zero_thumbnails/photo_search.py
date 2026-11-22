@@ -226,7 +226,9 @@ def search(name, cache_dir, pick=None, log=print):
     cands.sort(key=lambda i: (i["title"] not in main, -i["width"] * i["height"]))
     cands = cands[:MAX_CANDIDATES]
     if not cands:
-        raise ValueError(f"no usable photos of {person['label']} on Wikimedia Commons")
+        raise ValueError(f"there are no freely licensed photos of {person['label']} on Wikimedia Commons, so there is "
+                         f"nothing the tool is allowed to use. Use a photo you have the right to use instead: "
+                         f'python thumbnail.py photo.jpg "Your title"')
     log(f"Scoring {len(cands)} photos from Wikimedia Commons (960 px previews)...")
     folder = Path(cache_dir) / re.sub(r"[^\w]+", "_", person["label"]).strip("_")
     folder.mkdir(parents=True, exist_ok=True)

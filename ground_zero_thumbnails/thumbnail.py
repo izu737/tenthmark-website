@@ -294,16 +294,19 @@ def make_thumbnail(photo_path, title, out_path, font_path=None, arrow=True, debu
     m = np.asarray(Image.fromarray((m_src * 255).astype(np.uint8)).resize(small.size, Image.LANCZOS)).astype(np.float32) / 255.0
 
     # fade the person out where the photo itself ends, so no hard edges show
+    # Only where the person is actually cut by the photo's border: a photo cropped just above
+    # the hair must not have its hair faded out. The top gets a short fade, the rest a long one.
     fade = np.ones_like(m)
-    ramp = 110.0
     yy, xx = np.mgrid[0:small.height, 0:small.width].astype(np.float32)
-    for dist_to_edge, needed in (
-        (xx, off_x > 0),                                  # left edge inside the frame
-        (small.width - 1 - xx, off_x + small.width < W),  # right edge inside the frame
-        (small.height - 1 - yy, off_y + small.height < H),  # bottom inside the frame
-        (yy, off_y > 0),                                  # top inside the frame
+    def touches(strip):
+        return float((strip > 0.5).mean()) > 0.02
+    for dist_to_edge, inside, strip, ramp in (
+        (xx, off_x > 0, m[:, :3], 110.0),                                        # left
+        (small.width - 1 - xx, off_x + small.width < W, m[:, -3:], 110.0),       # right
+        (small.height - 1 - yy, off_y + small.height < H, m[-3:, :], 110.0),     # bottom
+        (yy, off_y > 0, m[:3, :], 18.0),                                         # top
     ):
-        if needed:
+        if inside and touches(strip):
             fade *= np.clip(dist_to_edge / ramp, 0, 1)
     m = m * fade
 

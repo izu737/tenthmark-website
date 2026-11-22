@@ -45,6 +45,10 @@ FINAL_WIDTH = 1920
 MAX_CANDIDATES = 24        # photos downloaded and scored per person
 MIN_SHORT_SIDE = 600       # smaller photos are not considered
 
+# Words in a file's description or categories that mean it is not the real person
+# (Paintings are allowed on purpose: for historical figures they are the only portraits.)
+NOT_THE_PERSON = ("wax", "waxwork", "tussaud", "statue", "sculpture", "mural", "mannequin",
+                  "caricature", "cosplay", "lookalike", "impersonator", "figurine", "graffiti", "billboard")
 SKIP_WORDS = ("signature", "logo", "map", "coat of arms", "flag", "autograph", "stamp", "grave",
               "statue", "bust", "house", "building", "plaque", "cover", "poster", "diagram")
 
@@ -164,6 +168,7 @@ def file_info(titles, width=PREVIEW_WIDTH):
                 "license": get("LicenseShortName") or "see file page", "license_url": get("LicenseUrl"),
                 "artist": get("Artist") or get("Credit") or "unknown author",
                 "date": get("DateTimeOriginal")[:10],
+                "about": (get("ImageDescription") + " | " + get("ObjectName") + " | " + get("Categories")).lower(),
             }
     return info
 
@@ -222,7 +227,8 @@ def search(name, cache_dir, pick=None, log=print):
     cands = [i for t, i in infos.items()
              if min(i["width"], i["height"]) >= MIN_SHORT_SIDE
              and i["mime"] in ("image/jpeg", "image/png", "image/webp", "image/tiff")
-             and not any(wd in t.lower() for wd in SKIP_WORDS)]
+             and not any(wd in t.lower() for wd in SKIP_WORDS)
+             and not any(wd in i.get("about", "") for wd in NOT_THE_PERSON)]
     cands.sort(key=lambda i: (i["title"] not in main, -i["width"] * i["height"]))
     cands = cands[:MAX_CANDIDATES]
     if not cands:
